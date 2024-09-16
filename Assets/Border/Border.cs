@@ -137,7 +137,11 @@ namespace BorderSystem
         /// <para>ボーダー内のランダムな座標を返す(y座標は乱数の対象外)</para>
         /// <para>計算不可の場合、nullを返す</para>
         /// <para>処理が重めなことに注意</para>
-        /// <para>なお、交差している、同じ座標にピンが2つある、3点が同一直線状にある、等の特殊ケースは、考慮していない</para>
+        /// <para>※※※ 注意点 ※※※</para>
+        /// <para>※ 交差しているとダメ</para>
+        /// <para>※ 同じ座標にピンが2つあるとダメ</para>
+        /// <para>※ 3点が同一直線状にあるとダメ</para>
+        /// <para>※ 反時計回りだとダメ</para>
         /// </summary>
         public Vector3? GetRandomPosition(float y = 0, float ofst = 0.01f)
         {
@@ -156,40 +160,11 @@ namespace BorderSystem
             catch (Exception) { return null; }
 
             // Transformのコレクションから、座標のコレクションを取得
-            // ((一応)重複削除 => (一応)同一直線上にある3点を削除 => 時計回りに変換 => 読み取り専用に変換)
-            ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms)
-            {
-                List<Vector2> posList
-                    = transforms
-                    .Select(e => e.position.XOZ_To_XY())
-                    .Distinct()
-                    .ToList();
-                if (posList == null || posList.Count <= 2) throw new Exception();
-
-                for (int i = 0; i < posList.Count; i++)
-                {
-                    Vector2 p0 = posList[(i - 1 + posList.Count) % posList.Count];
-                    Vector2 p1 = posList[i];
-                    Vector2 p2 = posList[(i + 1) % posList.Count];
-
-                    if (Mathf.Abs((p2 - p1, p1 - p0).Cross()) < ofst)
-                    {
-                        posList.RemoveAt(i);
-                        i = -1;
-                    }
-                }
-                if (posList == null || posList.Count <= 2) throw new Exception();
-
-                Vector2 v = posList[1] - posList[0];
-                v += new Vector2(v.y, -v.x) * ofst;  // 右に90度回転したものを僅かに足す
-                if (IsIn(v) != true)
-                    posList
-                        = posList
-                        .AsEnumerable().Reverse()
-                        .ToList();
-
-                return posList.AsReadOnly();
-            }
+            ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms) =>
+                transforms
+                .Select(e => e.position.XOZ_To_XY())
+                .ToList()
+                .AsReadOnly();
 
             // 三角形に分割する
             static ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2)>
@@ -292,6 +267,34 @@ namespace BorderSystem
                 if (s + t > 1) (s, t) = (1 - s, 1 - t);  // ここの誤差は無視する
                 return tri.p0 + s * (tri.p1 - tri.p0) + t * (tri.p2 - tri.p0);
             }
+        }
+
+        /// <summary>
+        /// <para>ボーダー内のランダムな座標を返す(y座標は乱数の対象外)</para>
+        /// <para>計算不可の場合、nullを返す</para>
+        /// <para>正確な一様分布ではないことに注意</para>
+        /// </summary>
+        public Vector3? GetRandomPositionSimply(float y = 0)
+        {
+            try
+            {
+                if (pinList == null || pinList.Count <= 2) return null;
+
+                List<Vector2> posList = pinList.Select(e => e.position.XOZ_To_XY()).ToList();
+
+                float sx = posList.Min(e => e.x), ex = posList.Max(e => e.x);
+                float sy = posList.Min(e => e.y), ey = posList.Max(e => e.y);
+
+                int cnt = 0;
+                while (true)
+                {
+                    Vector3 v =
+                        new Vector2(UnityEngine.Random.Range(sx, ex), UnityEngine.Random.Range(sy, ey)).XY_To_XOZ(y);
+                    if (IsIn(v) == true) return v;
+                    if (++cnt >= ushort.MaxValue) throw new Exception();
+                }
+            }
+            catch (Exception) { return null; }
         }
     }
 
