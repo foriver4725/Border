@@ -8,7 +8,10 @@ namespace Test
 {
     internal sealed class TestScript : MonoBehaviour
     {
+        #region
+
         [SerializeField] private Reference reference;
+        [SerializeField] private Property property;
         [SerializeField] private TextMeshProUGUI debugTMPro;
         private BenchMark.Debug debug;
         bool isFirstUpdate = true;
@@ -18,37 +21,55 @@ namespace Test
             debug = new(debugTMPro);
         }
 
-        private void OnDisable()
-        {
-            reference.Dispose();
-            debug.Dispose();
-
-            reference = null;
-            debugTMPro = null;
-            debug = null;
-        }
-
         private void Update()
         {
             if (isFirstUpdate)
             {
                 isFirstUpdate = false;
 
+                debug.Start();
                 OnStart();
             }
 
+            debug.Update();
             OnUpdate();
         }
 
+        #endregion
+
+        Transform tf;
+
         private void OnStart()
         {
-            debug.Start();
+            tf = Instantiate(reference.SpherePrefab, Vector3.zero, Quaternion.identity, transform).transform;
         }
 
         private void OnUpdate()
         {
-            debug.Update();
+            bool? b = reference.Border.IsIn(tf.position, property.Layer);
+            Debug.Log(b);
         }
+
+        private void OnDisable()
+        {
+            reference.Dispose();
+            debug.Dispose();
+
+            reference = null;
+            property = null;
+            debugTMPro = null;
+            debug = null;
+        }
+    }
+
+    #region
+
+    [Serializable]
+    internal sealed class Property
+    {
+        [SerializeField] private int layer;
+
+        internal int Layer => layer;
     }
 
     [Serializable]
@@ -74,4 +95,6 @@ namespace Test
             testMaterialBlue = null;
         }
     }
+
+    #endregion
 }
