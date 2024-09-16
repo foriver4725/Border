@@ -90,60 +90,70 @@ namespace BorderSystem
 
         /// <summary>
         /// <para>範囲の中に含まれているかどうか調べる</para>
-        /// <para>計算不可の場合、falseを返す</para>
+        /// <para>計算不可の場合、nullを返す</para>
         /// <para>レイヤーを指定していた場合、もしレイヤーが違うなら、falseを返す</para>
         /// <para>いずれかのピンの座標と一致していた場合、デフォルトでtrueを返す</para>
         /// </summary>
-        public bool IsIn(Vector2 pos, int? layer = null, bool isPinPositionsInclusive = true, float ofst = 0.01f)
+        public bool? IsIn(Vector2 pos, int? layer = null, bool isPinPositionsInclusive = true, float ofst = 0.01f)
         {
-            if (pinList == null || pinList.Count <= 2) return false;
-            if (!layer.HasValue || property.Layer != layer.Value) return false;
-
-            float th = 0;
-            for (int i = 0; i < pinList.Count; i++)
+            try
             {
-                Vector2 fromPinPos = pinList[i].position.XOZ_To_XY();
-                Vector2 toPinPos = ((i < pinList.Count - 1) ? pinList[i + 1].position : pinList[0].position).XOZ_To_XY();
+                if (pinList == null || pinList.Count <= 2) return null;
+                if (!layer.HasValue || property.Layer != layer.Value) return false;
 
-                Vector2 fromVec = fromPinPos - pos;
-                Vector2 toVec = toPinPos - pos;
+                float th = 0;
+                for (int i = 0; i < pinList.Count; i++)
+                {
+                    Vector2 fromPinPos = pinList[i].position.XOZ_To_XY();
+                    Vector2 toPinPos = pinList[(i < pinList.Count - 1) ? i + 1 : 0].position.XOZ_To_XY();
 
-                if (fromVec.sqrMagnitude < ofst) return isPinPositionsInclusive;
-                if (toVec.sqrMagnitude < ofst) return isPinPositionsInclusive;
+                    Vector2 fromVec = fromPinPos - pos;
+                    Vector2 toVec = toPinPos - pos;
 
-                float dth = Mathf.Acos(Vector2.Dot(toVec.normalized, fromVec.normalized));
-                if ((fromVec, toVec).Cross() < 0) dth *= -1;
+                    if (fromVec.sqrMagnitude < ofst) return isPinPositionsInclusive;
+                    if (toVec.sqrMagnitude < ofst) return isPinPositionsInclusive;
 
-                th += dth;
+                    float dth = Mathf.Acos(Vector2.Dot(toVec.normalized, fromVec.normalized));
+                    if ((fromVec, toVec).Cross() < 0) dth *= -1;
+
+                    th += dth;
+                }
+
+                return Mathf.Abs(th) >= ofst;
             }
-
-            return Mathf.Abs(th) >= ofst;
+            catch (Exception) { return null; }
         }
 
         /// <summary>
         /// <para>範囲の中に含まれているかどうか調べる(y成分は無視される)</para>
-        /// <para>計算不可の場合、falseを返す</para>
+        /// <para>計算不可の場合、nullを返す</para>
         /// <para>レイヤーを指定していた場合、もしレイヤーが違うなら、falseを返す</para>
         /// <para>いずれかのピンの座標と一致していた場合、デフォルトでtrueを返す</para>
         /// </summary>
-        public bool IsIn(Vector3 pos, int? layer = null, bool isPinPositionsInclusive = true, float ofst = 0.01f)
+        public bool? IsIn(Vector3 pos, int? layer = null, bool isPinPositionsInclusive = true, float ofst = 0.01f)
             => IsIn(pos.XOZ_To_XY(), layer, isPinPositionsInclusive, ofst);
 
         /// <summary>
         /// <para>ボーダー内のランダムな座標を返す(y座標は乱数の対象外)</para>
-        /// <para>計算不可の場合、零ベクトルを返す</para>
+        /// <para>計算不可の場合、nullを返す</para>
         /// <para>処理が重めなことに注意</para>
         /// <para>なお、交差している、同じ座標にピンが2つある等の特殊ケースは、考慮していない</para>
         /// </summary>
-        public Vector3 GetRandomPosition(float y = 0)
+        public Vector3? GetRandomPosition(float y = 0)
         {
-            if (pinList == null || pinList.Count <= 2) return Vector3.zero;
+            try
+            {
+                if (pinList == null || pinList.Count <= 2) return null;
 
-            var val0 = GetPosList(pinList.AsReadOnly());
-            var val1 = DivideIntoTriangles(val0);
-            var val2 = GetRandomTriangle(val1);
-            var val3 = GetRandomPos(val2);
-            return val3.XY_To_XOZ(y);
+                var val0 = GetPosList(pinList.AsReadOnly());
+                var val1 = DivideIntoTriangles(val0);
+                var val2 = GetRandomTriangle(val1);
+                var val3 = GetRandomPos(val2);
+                var val4 = val3.XY_To_XOZ(y);
+
+                return val4;
+            }
+            catch (Exception) { return null; }
 
             // Transformのコレクションから、座標のコレクションを取得((一応)重複削除 => 反時計回りに変換 => 読み取り専用に変換)
             static ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms)
