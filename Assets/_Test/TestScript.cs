@@ -109,6 +109,7 @@ namespace Test
 
         public void Dispose()
         {
+            border = null;
             testSpherePrefab = null;
             testMaterialRed = null;
             testMaterialGreen = null;
