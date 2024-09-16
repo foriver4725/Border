@@ -34,8 +34,8 @@ namespace BorderSystem
         private void Update() => BorderEx.Do(BorderEx.GetClientMode() switch
         {
             ClientMode.Editor_Editing => UpdateBorder,
-            ClientMode.Editor_Playing => BorderEx.Pass,
-            ClientMode.Build => BorderEx.Pass,
+            ClientMode.Editor_Playing => debugger.IsUpdateBorderEveryFrameOnRunTime ? UpdateBorder : BorderEx.Pass,
+            ClientMode.Build => debugger.IsUpdateBorderEveryFrameOnRunTime ? UpdateBorder : BorderEx.Pass,
             _ => throw new Exception("無効な値です")
         });
 
@@ -155,7 +155,7 @@ namespace BorderSystem
             }
             catch (Exception) { return null; }
 
-            // Transformのコレクションから、座標のコレクションを取得((一応)重複削除 => 反時計回りに変換 => 読み取り専用に変換)
+            // Transformのコレクションから、座標のコレクションを取得((一応)重複削除 => 時計回りに変換 => 読み取り専用に変換)
             static ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms)
             {
                 List<Vector2> posList
@@ -164,7 +164,7 @@ namespace BorderSystem
                 .Distinct()
                 .ToList();
 
-                if ((posList[1] - posList[0], posList[^1] - posList[0]).Cross() > 0)
+                if ((posList[1] - posList[0], posList[0] - posList[^1]).Cross() < 0)
                     posList
                         = posList
                         .AsEnumerable().Reverse()
