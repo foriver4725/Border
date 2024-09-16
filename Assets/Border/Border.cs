@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace BorderSystem
 {
-    [ExecuteAlways]
+    [ExecuteInEditMode]
     public sealed class Border : MonoBehaviour
     {
         [SerializeField, Header("設定項目")] private Property property;
@@ -17,7 +17,7 @@ namespace BorderSystem
 
         private void OnEnable() => BorderEx.Do(BorderEx.GetClientMode() switch
         {
-            ClientMode.Editor_Editing => UpdateBorder,
+            ClientMode.Editor_Editing => BorderEx.Pass,
             ClientMode.Editor_Playing => UpdateBorder,
             ClientMode.Build => UpdateBorder,
             _ => throw new Exception("無効な値です")
@@ -25,7 +25,7 @@ namespace BorderSystem
 
         private void OnDisable() => BorderEx.Do(BorderEx.GetClientMode() switch
         {
-            ClientMode.Editor_Editing => Dispose,
+            ClientMode.Editor_Editing => BorderEx.Pass,
             ClientMode.Editor_Playing => Dispose,
             ClientMode.Build => Dispose,
             _ => throw new Exception("無効な値です")
@@ -34,8 +34,8 @@ namespace BorderSystem
         private void Update() => BorderEx.Do(BorderEx.GetClientMode() switch
         {
             ClientMode.Editor_Editing => UpdateBorder,
-            ClientMode.Editor_Playing => debugger.IsUpdateBorderEveryFrameOnRunTime ? UpdateBorder : BorderEx.Pass,
-            ClientMode.Build => debugger.IsUpdateBorderEveryFrameOnRunTime ? UpdateBorder : BorderEx.Pass,
+            ClientMode.Editor_Playing => BorderEx.Pass,
+            ClientMode.Build => BorderEx.Pass,
             _ => throw new Exception("無効な値です")
         });
 
@@ -300,10 +300,6 @@ namespace BorderSystem
         [SerializeField, Header("エディタでプレイモード中にもBorderを表示する\nデフォルト：false")]
         private bool isShowBorderOnEditor_Playing = false;
         public bool IsShowBorderOnEditor_Playing => !isActive && isShowBorderOnEditor_Playing;
-
-        [SerializeField, Header("ランタイム中、毎フレームBorderを更新する\nデフォルト：false")]
-        private bool isUpdateBorderEveryFrameOnRunTime = false;
-        public bool IsUpdateBorderEveryFrameOnRunTime => isUpdateBorderEveryFrameOnRunTime;
     }
 
     [Serializable]
