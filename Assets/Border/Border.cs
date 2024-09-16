@@ -137,7 +137,7 @@ namespace BorderSystem
         /// <para>ボーダー内のランダムな座標を返す(y座標は乱数の対象外)</para>
         /// <para>計算不可の場合、nullを返す</para>
         /// <para>処理が重めなことに注意</para>
-        /// <para>なお、交差している等の特殊ケースは考慮していない</para>
+        /// <para>なお、交差している、同じ座標にピンが2つある、3点が同一直線状にある、等の特殊ケースは、考慮していない</para>
         /// </summary>
         public Vector3? GetRandomPosition(float y = 0, float ofst = 0.01f)
         {
@@ -156,7 +156,7 @@ namespace BorderSystem
             catch (Exception) { return null; }
 
             // Transformのコレクションから、座標のコレクションを取得
-            // (重複削除 => 同一直線上にある3点を削除 => 時計回りに変換 => 読み取り専用に変換)
+            // ((一応)重複削除 => (一応)同一直線上にある3点を削除 => 時計回りに変換 => 読み取り専用に変換)
             ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms)
             {
                 List<Vector2> posList
