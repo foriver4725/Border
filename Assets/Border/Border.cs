@@ -99,7 +99,7 @@ namespace BorderSystem
             try
             {
                 if (pinList == null || pinList.Count <= 2) return null;
-                if (!layer.HasValue || property.Layer != layer.Value) return false;
+                if (layer.HasValue && property.Layer != layer.Value) return false;
 
                 float th = 0;
                 for (int i = 0; i < pinList.Count; i++)
@@ -160,7 +160,7 @@ namespace BorderSystem
             catch (Exception) { return null; }
 
             // Transformのコレクションから、座標のコレクションを取得
-            ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms) =>
+            static ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms) =>
                 transforms
                 .Select(e => e.position.XOZ_To_XY())
                 .ToList()
@@ -183,7 +183,7 @@ namespace BorderSystem
                         Vector2 p1 = remains[i];
                         Vector2 p2 = remains[(i + 1) % remains.Count];
 
-                        if ((p1 - p0, p2 - p1).Cross() <= 0) continue;  // 凹はダメ
+                        if ((p1 - p0, p2 - p1).Cross() >= 0) continue;  // 凹はダメ
                         if (!IsEar(p0, p1, p2, remains.AsReadOnly())) continue;
 
                         triList.Add((p0, p1, p2));
@@ -288,9 +288,8 @@ namespace BorderSystem
                 int cnt = 0;
                 while (true)
                 {
-                    Vector3 v =
-                        new Vector2(UnityEngine.Random.Range(sx, ex), UnityEngine.Random.Range(sy, ey)).XY_To_XOZ(y);
-                    if (IsIn(v) == true) return v;
+                    Vector2 v = new(UnityEngine.Random.Range(sx, ex), UnityEngine.Random.Range(sy, ey));
+                    if (IsIn(v) == true) return v.XY_To_XOZ(y);
                     if (++cnt >= ushort.MaxValue) throw new Exception();
                 }
             }
@@ -392,7 +391,7 @@ namespace BorderSystem
 
         /// <summary>
         /// <para>2次元実数ベクトル同士の、外積(スカラー)を求める</para>
-        /// <para>正の場合、bはaの左側にある</para>
+        /// <para>正の場合、aはbの右側にある</para>
         /// </summary>
         public static float Cross(this (Vector2 a, Vector2 b) v) => v.a.x * v.b.y - v.a.y * v.b.x;
 
