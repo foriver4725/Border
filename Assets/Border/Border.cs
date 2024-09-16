@@ -17,7 +17,7 @@ namespace BorderSystem
 
         private void OnEnable() => BorderEx.Do(BorderEx.GetClientMode() switch
         {
-            ClientMode.Editor_Editing => UpdateBorder,
+            ClientMode.Editor_Editing => BorderEx.Pass,
             ClientMode.Editor_Playing => UpdateBorder,
             ClientMode.Build => UpdateBorder,
             _ => throw new Exception("無効な値です")
@@ -25,7 +25,7 @@ namespace BorderSystem
 
         private void OnDisable() => BorderEx.Do(BorderEx.GetClientMode() switch
         {
-            ClientMode.Editor_Editing => Dispose,
+            ClientMode.Editor_Editing => BorderEx.Pass,
             ClientMode.Editor_Playing => Dispose,
             ClientMode.Build => Dispose,
             _ => throw new Exception("無効な値です")
@@ -58,34 +58,102 @@ namespace BorderSystem
         /// </summary>
         private void UpdateBorder()
         {
-            if (reference.IsNullExist()) return;
-
-            // アクティブ状態の設定
-            bool isActive = BorderEx.GetClientMode() switch
+            try
             {
-                ClientMode.Editor_Editing => property.IsShow,
-                ClientMode.Editor_Playing => debugger.IsShowBorderOnEditor_Playing,
-                ClientMode.Build => false,
-                _ => throw new Exception("無効な値です")
-            };
-            reference.LineRenderer.enabled = isActive;
-            foreach (Transform e in reference.PinsParentTransform) e.GetComponent<MeshRenderer>().enabled = isActive;
+                if (reference.IsNullExist())
+                {
+                    Debug.LogError("インスペクタでアタッチされていない参照が存在します。" +
+                        "エラーが付随している場合、まずこの可能性を検討して下さい");
+                    return;
+                }
 
-            int pinNum = reference.PinsParentTransform.childCount;
+                // アクティブ状態の設定
+                bool isActive = BorderEx.GetClientMode() switch
+                {
+                    ClientMode.Editor_Editing => property.IsShow,
+                    ClientMode.Editor_Playing => debugger.IsShowBorderOnEditor_Playing,
+                    ClientMode.Build => false,
+                    _ => throw new Exception("無効な値です")
+                };
+                reference.LineRenderer.enabled = isActive;
+                foreach (Transform e in reference.PinsParentTransform) e.GetComponent<MeshRenderer>().enabled = isActive;
 
-            // ピンのリストを更新
-            pinList.Clear();
-            for (int i = 0; i < pinNum; i++) pinList.Add(reference.PinsParentTransform.GetChild(i));
+                int pinNum = reference.PinsParentTransform.childCount;
 
-            // アクティブなら、マテリアルと色を設定し、線を描画する
-            if (!isActive) return;
-            Material mat = new(reference.Material) { color = property.Color };
-            reference.LineRenderer.sharedMaterial = mat;
-            reference.LineRenderer.startWidth = property.Thin;
-            reference.LineRenderer.endWidth = property.Thin;
-            reference.LineRenderer.positionCount = pinNum + 1;
-            for (int i = 0; i < pinNum; i++) reference.LineRenderer.SetPosition(i, pinList[i].position);
-            reference.LineRenderer.SetPosition(pinNum, pinList[0].position);
+                // ピンのリストを更新
+                pinList.Clear();
+                for (int i = 0; i < pinNum; i++) pinList.Add(reference.PinsParentTransform.GetChild(i));
+
+                // ピンの配置が適切かどうか、チェック
+                var posList = pinList.Select(e => e.position.XOZ_To_XY()).ToList();
+                string s = IsPinOK(posList.AsReadOnly());
+                if (s != null) Debug.LogWarning($"{s}。計算が正常に行われていない場合、まずこの可能性を検討してください");
+
+                // アクティブなら、マテリアルと色を設定し、線を描画する
+                if (!isActive) return;
+                Material mat = new(reference.Material) { color = property.Color };
+                reference.LineRenderer.sharedMaterial = mat;
+                reference.LineRenderer.startWidth = property.Thin;
+                reference.LineRenderer.endWidth = property.Thin;
+                reference.LineRenderer.positionCount = pinNum + 1;
+                for (int i = 0; i < pinNum; i++) reference.LineRenderer.SetPosition(i, pinList[i].position);
+                reference.LineRenderer.SetPosition(pinNum, pinList[0].position);
+            }
+            catch (Exception e) { Debug.LogError($"エラーがスローされました：{e}"); }
+        }
+
+        /// <summary>
+        /// <para>posListが以下のどれかに該当していたら、それを説明する文字列を返し、そうでないならnullを返す</para>
+        /// <para>・同じ座標にピンが2つ以上ある</para>
+        /// <para>・3つ以上のピンが同一直線上にある</para>
+        /// <para>・Borderが交差している</para>
+        /// </summary>
+        private string IsPinOK(ReadOnlyCollection<Vector2> posList, float ofst = 0.01f)
+        {
+            // 同じ座標にピンが2つ以上あるか？
+            for (int i = 0; i < posList.Count; i++)
+            {
+                for (int j = 0; j < posList.Count; j++)
+                {
+                    if (i == j) continue;
+
+                    if (posList[i] == posList[j]) return "同じ座標にピンが2つ以上存在しています";
+                }
+            }
+
+            // 3つ以上のピンが同一直線上にあるか？
+            for (int i = 0; i < posList.Count; i++)
+            {
+                Vector2 p0 = posList[(i - 1 + posList.Count) % posList.Count];
+                Vector2 p1 = posList[i];
+                Vector2 p2 = posList[(i + 1) % posList.Count];
+
+                if (Mathf.Abs((p1 - p0, p2 - p1).Cross()) < ofst)
+                {
+                    return "3つ以上のピンが同一直線状に存在しています";
+                }
+            }
+
+            // Borderが交差しているか？
+            for (int i = 0; i < posList.Count; i++)
+            {
+                for (int j = 0; j < posList.Count; j++)
+                {
+                    if (i == j) continue;
+
+                    Vector2 p0 = posList[i], p1 = posList[(i + 1) % posList.Count];
+                    Vector2 q0 = posList[j], q1 = posList[(j + 1) % posList.Count];
+
+                    float c0 = (p1 - p0, q0 - p0).Cross();
+                    float c1 = (p1 - p0, q1 - p0).Cross();
+                    float c2 = (q1 - q0, p0 - q0).Cross();
+                    float c3 = (q1 - q0, p1 - q0).Cross();
+
+                    if (c0 * c1 < 0 && c2 * c3 < 0) return "Borderに交差している箇所が存在しています";
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -93,6 +161,10 @@ namespace BorderSystem
         /// <para>計算不可の場合、nullを返す</para>
         /// <para>レイヤーを指定していた場合、もしレイヤーが違うなら、falseを返す</para>
         /// <para>いずれかのピンの座標と一致していた場合、デフォルトでtrueを返す</para>
+        /// <para>※※※ 注意点 ※※※</para>
+        /// <para>※ Borderが交差しているとダメ</para>
+        /// <para>※ 同じ座標にピンが2つ以上あるとダメ</para>
+        /// <para>※ 3つ以上のピンが同一直線上にあるとダメ</para>
         /// </summary>
         public bool? IsIn(Vector2 pos, int? layer = null, bool isPinPositionsInclusive = true, float ofst = 0.01f)
         {
@@ -105,7 +177,7 @@ namespace BorderSystem
                 for (int i = 0; i < pinList.Count; i++)
                 {
                     Vector2 fromPinPos = pinList[i].position.XOZ_To_XY();
-                    Vector2 toPinPos = pinList[(i < pinList.Count - 1) ? i + 1 : 0].position.XOZ_To_XY();
+                    Vector2 toPinPos = pinList[(i + 1) % pinList.Count].position.XOZ_To_XY();
 
                     Vector2 fromVec = fromPinPos - pos;
                     Vector2 toVec = toPinPos - pos;
@@ -129,6 +201,10 @@ namespace BorderSystem
         /// <para>計算不可の場合、nullを返す</para>
         /// <para>レイヤーを指定していた場合、もしレイヤーが違うなら、falseを返す</para>
         /// <para>いずれかのピンの座標と一致していた場合、デフォルトでtrueを返す</para>
+        /// <para>※※※ 注意点 ※※※</para>
+        /// <para>※ Borderが交差しているとダメ</para>
+        /// <para>※ 同じ座標にピンが2つ以上あるとダメ</para>
+        /// <para>※ 3つ以上のピンが同一直線上にあるとダメ</para>
         /// </summary>
         public bool? IsIn(Vector3 pos, int? layer = null, bool isPinPositionsInclusive = true, float ofst = 0.01f)
             => IsIn(pos.XOZ_To_XY(), layer, isPinPositionsInclusive, ofst);
@@ -138,9 +214,9 @@ namespace BorderSystem
         /// <para>計算不可の場合、nullを返す</para>
         /// <para>処理が重めなことに注意</para>
         /// <para>※※※ 注意点 ※※※</para>
-        /// <para>※ 交差しているとダメ</para>
-        /// <para>※ 同じ座標にピンが2つあるとダメ</para>
-        /// <para>※ 3点が同一直線状にあるとダメ</para>
+        /// <para>※ Borderが交差しているとダメ</para>
+        /// <para>※ 同じ座標にピンが2つ以上あるとダメ</para>
+        /// <para>※ 3つ以上のピンが同一直線上にあるとダメ</para>
         /// </summary>
         public Vector3? GetRandomPosition(float y = 0, float ofst = 0.01f)
         {
@@ -161,25 +237,13 @@ namespace BorderSystem
             // Transformのコレクションから、座標のコレクションを取得
             ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms)
             {
-                var posList =
-                    transforms
-                    .Select(e => e.position.XOZ_To_XY())
-                    .ToList()
-                    .AsReadOnly();
+                var posList = transforms.Select(e => e.position.XOZ_To_XY()).ToList().AsReadOnly();
 
                 // 反時計回りなら、逆順に並び替える
                 Vector2 sv = posList[0], ev = posList[1];
                 Vector2 v = ev - sv;
                 v = sv + v / 2 + new Vector2(v.y, -v.x) * (ofst * 10);  // 少しだけ右の座標
-                if (IsIn(v) != true)
-                {
-                    posList =
-                        posList
-                        .AsEnumerable()
-                        .Reverse()
-                        .ToList()
-                        .AsReadOnly();
-                }
+                if (IsIn(v) != true) posList = posList.AsEnumerable().Reverse().ToList().AsReadOnly();
 
                 return posList;
             }
@@ -236,18 +300,12 @@ namespace BorderSystem
                 GetRandomTriangle(ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2)> triList)
             {
                 ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2, float s)> triAreaList
-                    = triList
-                    .Select(e => (e.p0, e.p1, e.p2, CalcArea(e.p0, e.p1, e.p2)))
-                    .ToList()
-                    .AsReadOnly();
+                    = triList.Select(e => (e.p0, e.p1, e.p2, CalcArea(e.p0, e.p1, e.p2))).ToList().AsReadOnly();
 
                 float areaSum = triAreaList.Sum(e => e.s);
 
                 ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2, float p)> triPList
-                   = triAreaList
-                   .Select(e => (e.p0, e.p1, e.p2, e.s / areaSum))
-                   .ToList()
-                   .AsReadOnly();
+                   = triAreaList.Select(e => (e.p0, e.p1, e.p2, e.s / areaSum)).ToList().AsReadOnly();
 
                 return GetRandomTri(triPList);
 
@@ -291,6 +349,10 @@ namespace BorderSystem
         /// <para>ボーダー内のランダムな座標を返す(y座標は乱数の対象外)</para>
         /// <para>計算不可の場合、nullを返す</para>
         /// <para>正確な一様分布ではないことに注意</para>
+        /// <para>※※※ 注意点 ※※※</para>
+        /// <para>※ Borderが交差しているとダメ</para>
+        /// <para>※ 同じ座標にピンが2つ以上あるとダメ</para>
+        /// <para>※ 3つ以上のピンが同一直線上にあるとダメ</para>
         /// </summary>
         public Vector3? GetRandomPositionSimply(float y = 0)
         {
