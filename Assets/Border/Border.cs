@@ -137,9 +137,9 @@ namespace BorderSystem
         /// <para>ボーダー内のランダムな座標を返す(y座標は乱数の対象外)</para>
         /// <para>計算不可の場合、nullを返す</para>
         /// <para>処理が重めなことに注意</para>
-        /// <para>なお、交差している、3点が同一直線状にある、同じ座標にピンが2つある、等の特殊ケースは、考慮していない</para>
+        /// <para>なお、交差している等の特殊ケースは考慮していない</para>
         /// </summary>
-        public Vector3? GetRandomPosition(float y = 0)
+        public Vector3? GetRandomPosition(float y = 0, float ofst = 0.01f)
         {
             try
             {
@@ -155,16 +155,34 @@ namespace BorderSystem
             }
             catch (Exception) { return null; }
 
-            // Transformのコレクションから、座標のコレクションを取得((一応)重複削除 => 時計回りに変換 => 読み取り専用に変換)
-            static ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms)
+            // Transformのコレクションから、座標のコレクションを取得
+            // (重複削除 => 同一直線上にある3点を削除 => 時計回りに変換 => 読み取り専用に変換)
+            ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms)
             {
                 List<Vector2> posList
-                = transforms
-                .Select(e => e.position.XOZ_To_XY())
-                .Distinct()
-                .ToList();
+                    = transforms
+                    .Select(e => e.position.XOZ_To_XY())
+                    .Distinct()
+                    .ToList();
+                if (posList == null || posList.Count <= 2) throw new Exception();
 
-                if ((posList[1] - posList[0], posList[0] - posList[^1]).Cross() < 0)
+                for (int i = 0; i < posList.Count; i++)
+                {
+                    Vector2 p0 = posList[(i - 1 + posList.Count) % posList.Count];
+                    Vector2 p1 = posList[i];
+                    Vector2 p2 = posList[(i + 1) % posList.Count];
+
+                    if (Mathf.Abs((p2 - p1, p1 - p0).Cross()) < ofst)
+                    {
+                        posList.RemoveAt(i);
+                        i = -1;
+                    }
+                }
+                if (posList == null || posList.Count <= 2) throw new Exception();
+
+                Vector2 v = posList[1] - posList[0];
+                v += new Vector2(v.y, -v.x) * ofst;  // 右に90度回転したものを僅かに足す
+                if (IsIn(v) != true)
                     posList
                         = posList
                         .AsEnumerable().Reverse()
