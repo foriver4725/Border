@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -9,9 +9,9 @@ namespace BorderSystem
     [ExecuteInEditMode]
     public sealed class Border : MonoBehaviour
     {
-        [SerializeField, Header("İ’è€–Ú")] private Property property;
-        [SerializeField, Header("ƒfƒoƒbƒO‹@”\")] private Debugger debugger;
-        [SerializeField, Header("QÆ‚ğƒAƒ^ƒbƒ`(ƒm[ƒ^ƒbƒ`‚ÅOK)")] private Reference reference;
+        [SerializeField, Header("è¨­å®šé …ç›®")] private Property property;
+        [SerializeField, Header("ãƒ‡ãƒãƒƒã‚°æ©Ÿèƒ½")] private Debugger debugger;
+        [SerializeField, Header("å‚ç…§ã‚’ã‚¢ã‚¿ãƒƒãƒ(ãƒãƒ¼ã‚¿ãƒƒãƒã§OK)")] private Reference reference;
 
         private List<Transform> pinList = new();
 
@@ -20,7 +20,7 @@ namespace BorderSystem
             ClientMode.Editor_Editing => BorderEx.Pass,
             ClientMode.Editor_Playing => UpdateBorder,
             ClientMode.Build => UpdateBorder,
-            _ => throw new Exception("–³Œø‚È’l‚Å‚·")
+            _ => throw new Exception("ç„¡åŠ¹ãªå€¤ã§ã™")
         });
 
         private void OnDisable() => BorderEx.Do(BorderEx.GetClientMode() switch
@@ -28,7 +28,7 @@ namespace BorderSystem
             ClientMode.Editor_Editing => BorderEx.Pass,
             ClientMode.Editor_Playing => Dispose,
             ClientMode.Build => Dispose,
-            _ => throw new Exception("–³Œø‚È’l‚Å‚·")
+            _ => throw new Exception("ç„¡åŠ¹ãªå€¤ã§ã™")
         });
 
         private void Update() => BorderEx.Do(BorderEx.GetClientMode() switch
@@ -36,11 +36,11 @@ namespace BorderSystem
             ClientMode.Editor_Editing => UpdateBorder,
             ClientMode.Editor_Playing => BorderEx.Pass,
             ClientMode.Build => BorderEx.Pass,
-            _ => throw new Exception("–³Œø‚È’l‚Å‚·")
+            _ => throw new Exception("ç„¡åŠ¹ãªå€¤ã§ã™")
         });
 
         /// <summary>
-        /// QÆ‚ğ”jŠü‚·‚é(–¾¦“Inull‘ã“ü)
+        /// å‚ç…§ã‚’ç ´æ£„ã™ã‚‹(æ˜ç¤ºçš„nullä»£å…¥)
         /// </summary>
         private void Dispose()
         {
@@ -54,30 +54,30 @@ namespace BorderSystem
         }
 
         /// <summary>
-        /// Border‚Ìó‘Ô‚ğXV‚·‚é
+        /// Borderã®çŠ¶æ…‹ã‚’æ›´æ–°ã™ã‚‹
         /// </summary>
         private void UpdateBorder()
         {
             if (reference.IsNullExist()) return;
 
-            // ƒAƒNƒeƒBƒuó‘Ô‚Ìİ’è
+            // ã‚¢ã‚¯ãƒ†ã‚£ãƒ–çŠ¶æ…‹ã®è¨­å®š
             bool isActive = BorderEx.GetClientMode() switch
             {
                 ClientMode.Editor_Editing => property.IsShow,
                 ClientMode.Editor_Playing => debugger.IsShowBorderOnEditor_Playing,
                 ClientMode.Build => false,
-                _ => throw new Exception("–³Œø‚È’l‚Å‚·")
+                _ => throw new Exception("ç„¡åŠ¹ãªå€¤ã§ã™")
             };
             reference.LineRenderer.enabled = isActive;
             foreach (Transform e in reference.PinsParentTransform) e.GetComponent<MeshRenderer>().enabled = isActive;
 
             int pinNum = reference.PinsParentTransform.childCount;
 
-            // ƒsƒ“‚ÌƒŠƒXƒg‚ğXV
+            // ãƒ”ãƒ³ã®ãƒªã‚¹ãƒˆã‚’æ›´æ–°
             pinList.Clear();
             for (int i = 0; i < pinNum; i++) pinList.Add(reference.PinsParentTransform.GetChild(i));
 
-            // ƒAƒNƒeƒBƒu‚È‚çAƒ}ƒeƒŠƒAƒ‹‚ÆF‚ğİ’è‚µAü‚ğ•`‰æ‚·‚é
+            // ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ãªã‚‰ã€ãƒãƒ†ãƒªã‚¢ãƒ«ã¨è‰²ã‚’è¨­å®šã—ã€ç·šã‚’æç”»ã™ã‚‹
             if (!isActive) return;
             Material mat = new(reference.Material) { color = property.Color };
             reference.LineRenderer.sharedMaterial = mat;
@@ -89,10 +89,10 @@ namespace BorderSystem
         }
 
         /// <summary>
-        /// <para>”ÍˆÍ‚Ì’†‚ÉŠÜ‚Ü‚ê‚Ä‚¢‚é‚©‚Ç‚¤‚©’²‚×‚é</para>
-        /// <para>ŒvZ•s‰Â‚Ìê‡Anull‚ğ•Ô‚·</para>
-        /// <para>ƒŒƒCƒ„[‚ğw’è‚µ‚Ä‚¢‚½ê‡A‚à‚µƒŒƒCƒ„[‚ªˆá‚¤‚È‚çAfalse‚ğ•Ô‚·</para>
-        /// <para>‚¢‚¸‚ê‚©‚Ìƒsƒ“‚ÌÀ•W‚Æˆê’v‚µ‚Ä‚¢‚½ê‡AƒfƒtƒHƒ‹ƒg‚Åtrue‚ğ•Ô‚·</para>
+        /// <para>ç¯„å›²ã®ä¸­ã«å«ã¾ã‚Œã¦ã„ã‚‹ã‹ã©ã†ã‹èª¿ã¹ã‚‹</para>
+        /// <para>è¨ˆç®—ä¸å¯ã®å ´åˆã€nullã‚’è¿”ã™</para>
+        /// <para>ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’æŒ‡å®šã—ã¦ã„ãŸå ´åˆã€ã‚‚ã—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒé•ã†ãªã‚‰ã€falseã‚’è¿”ã™</para>
+        /// <para>ã„ãšã‚Œã‹ã®ãƒ”ãƒ³ã®åº§æ¨™ã¨ä¸€è‡´ã—ã¦ã„ãŸå ´åˆã€ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã§trueã‚’è¿”ã™</para>
         /// </summary>
         public bool? IsIn(Vector2 pos, int? layer = null, bool isPinPositionsInclusive = true, float ofst = 0.01f)
         {
@@ -125,19 +125,19 @@ namespace BorderSystem
         }
 
         /// <summary>
-        /// <para>”ÍˆÍ‚Ì’†‚ÉŠÜ‚Ü‚ê‚Ä‚¢‚é‚©‚Ç‚¤‚©’²‚×‚é(y¬•ª‚Í–³‹‚³‚ê‚é)</para>
-        /// <para>ŒvZ•s‰Â‚Ìê‡Anull‚ğ•Ô‚·</para>
-        /// <para>ƒŒƒCƒ„[‚ğw’è‚µ‚Ä‚¢‚½ê‡A‚à‚µƒŒƒCƒ„[‚ªˆá‚¤‚È‚çAfalse‚ğ•Ô‚·</para>
-        /// <para>‚¢‚¸‚ê‚©‚Ìƒsƒ“‚ÌÀ•W‚Æˆê’v‚µ‚Ä‚¢‚½ê‡AƒfƒtƒHƒ‹ƒg‚Åtrue‚ğ•Ô‚·</para>
+        /// <para>ç¯„å›²ã®ä¸­ã«å«ã¾ã‚Œã¦ã„ã‚‹ã‹ã©ã†ã‹èª¿ã¹ã‚‹(yæˆåˆ†ã¯ç„¡è¦–ã•ã‚Œã‚‹)</para>
+        /// <para>è¨ˆç®—ä¸å¯ã®å ´åˆã€nullã‚’è¿”ã™</para>
+        /// <para>ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’æŒ‡å®šã—ã¦ã„ãŸå ´åˆã€ã‚‚ã—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒé•ã†ãªã‚‰ã€falseã‚’è¿”ã™</para>
+        /// <para>ã„ãšã‚Œã‹ã®ãƒ”ãƒ³ã®åº§æ¨™ã¨ä¸€è‡´ã—ã¦ã„ãŸå ´åˆã€ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã§trueã‚’è¿”ã™</para>
         /// </summary>
         public bool? IsIn(Vector3 pos, int? layer = null, bool isPinPositionsInclusive = true, float ofst = 0.01f)
             => IsIn(pos.XOZ_To_XY(), layer, isPinPositionsInclusive, ofst);
 
         /// <summary>
-        /// <para>ƒ{[ƒ_[“à‚Ìƒ‰ƒ“ƒ_ƒ€‚ÈÀ•W‚ğ•Ô‚·(yÀ•W‚Í—”‚Ì‘ÎÛŠO)</para>
-        /// <para>ŒvZ•s‰Â‚Ìê‡Anull‚ğ•Ô‚·</para>
-        /// <para>ˆ—‚ªd‚ß‚È‚±‚Æ‚É’ˆÓ</para>
-        /// <para>‚È‚¨AŒğ·‚µ‚Ä‚¢‚éA“¯‚¶À•W‚Éƒsƒ“‚ª2‚Â‚ ‚é“™‚Ì“ÁêƒP[ƒX‚ÍAl—¶‚µ‚Ä‚¢‚È‚¢</para>
+        /// <para>ãƒœãƒ¼ãƒ€ãƒ¼å†…ã®ãƒ©ãƒ³ãƒ€ãƒ ãªåº§æ¨™ã‚’è¿”ã™(yåº§æ¨™ã¯ä¹±æ•°ã®å¯¾è±¡å¤–)</para>
+        /// <para>è¨ˆç®—ä¸å¯ã®å ´åˆã€nullã‚’è¿”ã™</para>
+        /// <para>å‡¦ç†ãŒé‡ã‚ãªã“ã¨ã«æ³¨æ„</para>
+        /// <para>ãªãŠã€äº¤å·®ã—ã¦ã„ã‚‹ã€3ç‚¹ãŒåŒä¸€ç›´ç·šçŠ¶ã«ã‚ã‚‹ã€åŒã˜åº§æ¨™ã«ãƒ”ãƒ³ãŒ2ã¤ã‚ã‚‹ã€ç­‰ã®ç‰¹æ®Šã‚±ãƒ¼ã‚¹ã¯ã€è€ƒæ…®ã—ã¦ã„ãªã„</para>
         /// </summary>
         public Vector3? GetRandomPosition(float y = 0)
         {
@@ -155,7 +155,7 @@ namespace BorderSystem
             }
             catch (Exception) { return null; }
 
-            // Transform‚ÌƒRƒŒƒNƒVƒ‡ƒ“‚©‚çAÀ•W‚ÌƒRƒŒƒNƒVƒ‡ƒ“‚ğæ“¾((ˆê‰)d•¡íœ => ”½Œv‰ñ‚è‚É•ÏŠ· => “Ç‚İæ‚èê—p‚É•ÏŠ·)
+            // Transformã®ã‚³ãƒ¬ã‚¯ã‚·ãƒ§ãƒ³ã‹ã‚‰ã€åº§æ¨™ã®ã‚³ãƒ¬ã‚¯ã‚·ãƒ§ãƒ³ã‚’å–å¾—((ä¸€å¿œ)é‡è¤‡å‰Šé™¤ => åæ™‚è¨ˆå›ã‚Šã«å¤‰æ› => èª­ã¿å–ã‚Šå°‚ç”¨ã«å¤‰æ›)
             static ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms)
             {
                 List<Vector2> posList
@@ -173,7 +173,7 @@ namespace BorderSystem
                 return posList.AsReadOnly();
             }
 
-            // OŠpŒ`‚É•ªŠ„‚·‚é
+            // ä¸‰è§’å½¢ã«åˆ†å‰²ã™ã‚‹
             static ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2)>
                 DivideIntoTriangles(ReadOnlyCollection<Vector2> posList)
             {
@@ -183,30 +183,34 @@ namespace BorderSystem
 
                 while (remains.Count >= 3)
                 {
+                    bool isFound = false;
                     for (int i = 0; i < remains.Count; i++)
                     {
                         Vector2 p0 = remains[(i - 1 + remains.Count) % remains.Count];
                         Vector2 p1 = remains[i];
                         Vector2 p2 = remains[(i + 1) % remains.Count];
 
+                        if ((p1 - p0, p2 - p1).Cross() <= 0) continue;  // å‡¹ã¯ãƒ€ãƒ¡
                         if (!IsEar(p0, p1, p2, remains.AsReadOnly())) continue;
 
                         triList.Add((p0, p1, p2));
                         remains.RemoveAt(i);
+                        isFound = true;
                         break;
                     }
+                    if (!isFound) break;
                 }
 
                 return triList.AsReadOnly();
 
-                // “_abc‚ğ‚±‚Ì‡‚ÉŒ‹‚ñ‚¾OŠpŒ`‚ğl‚¦‚éA“_p‚ª‚»‚ÌOŠpŒ`‚Ì“à•”(‹«ŠE‚ğŠÜ‚Ş)‚É‚ ‚é‚©‚Ç‚¤‚©”»’è‚·‚é
+                // ç‚¹abcã‚’ã“ã®é †ã«çµã‚“ã ä¸‰è§’å½¢ã‚’è€ƒãˆã‚‹æ™‚ã€ç‚¹pãŒãã®ä¸‰è§’å½¢ã®å†…éƒ¨(å¢ƒç•Œã‚’å«ã‚€)ã«ã‚ã‚‹ã‹ã©ã†ã‹åˆ¤å®šã™ã‚‹
                 static bool IsIn(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
                     => (p - a, b - a).Cross() >= 0 && (p - b, c - b).Cross() >= 0 && (p - c, a - c).Cross() >= 0;
 
-                // OŠpŒ`abc‚ªAlist‚É‚æ‚Á‚Ä•\Œ»‚³‚ê‚é‘½ŠpŒ`‚Ìu¨v‚Å‚ ‚é‚©‚Ç‚¤‚©A”»’è‚·‚é
+                // ä¸‰è§’å½¢abcãŒã€listã«ã‚ˆã£ã¦è¡¨ç¾ã•ã‚Œã‚‹å¤šè§’å½¢ã®ã€Œè€³ã€ã§ã‚ã‚‹ã‹ã©ã†ã‹ã€åˆ¤å®šã™ã‚‹
                 static bool IsEar(Vector2 a, Vector2 b, Vector2 c, ReadOnlyCollection<Vector2> list)
                 {
-                    // ‘¼‚Ì’¸“_‚ª‚±‚ÌOŠpŒ`‚Ì“à•”‚É‚ ‚Á‚½‚çAƒAƒEƒg
+                    // ä»–ã®é ‚ç‚¹ãŒã“ã®ä¸‰è§’å½¢ã®å†…éƒ¨ã«ã‚ã£ãŸã‚‰ã€ã‚¢ã‚¦ãƒˆ
                     foreach (var e in list)
                     {
                         if (e == a || e == b || e == c) continue;
@@ -216,7 +220,7 @@ namespace BorderSystem
                 }
             }
 
-            // ƒ‰ƒ“ƒ_ƒ€‚ÈOŠpŒ`‚ğ’Šo
+            // ãƒ©ãƒ³ãƒ€ãƒ ãªä¸‰è§’å½¢ã‚’æŠ½å‡º
             static (Vector2 p0, Vector2 p1, Vector2 p2)
                 GetRandomTriangle(ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2)> triList)
             {
@@ -236,11 +240,11 @@ namespace BorderSystem
 
                 return GetRandomTri(triPList);
 
-                // OŠpŒ`abc‚Ì–ÊÏ‚ğ‹‚ß‚é
+                // ä¸‰è§’å½¢abcã®é¢ç©ã‚’æ±‚ã‚ã‚‹
                 static float CalcArea(Vector2 a, Vector2 b, Vector2 c)
                     => Mathf.Abs((b - a, c - a).Cross()) / 2;
 
-                // —^‚¦‚ç‚ê‚½Šm—¦‚ÉŠî‚Ã‚¢‚ÄAƒ‰ƒ“ƒ_ƒ€‚É’Šo‚·‚é
+                // ä¸ãˆã‚‰ã‚ŒãŸç¢ºç‡ã«åŸºã¥ã„ã¦ã€ãƒ©ãƒ³ãƒ€ãƒ ã«æŠ½å‡ºã™ã‚‹
                 static (Vector2 p0, Vector2 p1, Vector2 p2) GetRandomTri
                     (ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2, float p)> triPList, float ofst = 0.01f)
                 {
@@ -258,16 +262,16 @@ namespace BorderSystem
                     return DelP(triPList[^1]);
                 }
 
-                // p‚Ìî•ñ‚ğÌ‚Ä‚é
+                // pã®æƒ…å ±ã‚’æ¨ã¦ã‚‹
                 static (Vector2 p0, Vector2 p1, Vector2 p2) DelP((Vector2 p0, Vector2 p1, Vector2 p2, float p) triP)
                     => (triP.p0, triP.p1, triP.p2);
             }
 
-            // OŠpŒ`“à•”(‹«ŠE‚ğŠÜ‚Ş)‚Ìƒ‰ƒ“ƒ_ƒ€‚ÈÀ•W‚ğæ“¾
+            // ä¸‰è§’å½¢å†…éƒ¨(å¢ƒç•Œã‚’å«ã‚€)ã®ãƒ©ãƒ³ãƒ€ãƒ ãªåº§æ¨™ã‚’å–å¾—
             static Vector2 GetRandomPos((Vector2 p0, Vector2 p1, Vector2 p2) tri)
             {
                 float s = UnityEngine.Random.value, t = UnityEngine.Random.value;
-                if (s + t > 1) (s, t) = (1 - s, 1 - t);  // ‚±‚±‚ÌŒë·‚Í–³‹‚·‚é
+                if (s + t > 1) (s, t) = (1 - s, 1 - t);  // ã“ã“ã®èª¤å·®ã¯ç„¡è¦–ã™ã‚‹
                 return tri.p0 + s * (tri.p1 - tri.p0) + t * (tri.p2 - tri.p0);
             }
         }
@@ -276,13 +280,13 @@ namespace BorderSystem
     [Serializable]
     public sealed class Property
     {
-        [SerializeField, Header("ü‚ğ•\¦‚·‚é‚©\n(ƒ‰ƒ“ƒ^ƒCƒ€‚Í‹­§”ñ•\¦)\nƒfƒtƒHƒ‹ƒgFtrue")] private bool isShow = true;
+        [SerializeField, Header("ç·šã‚’è¡¨ç¤ºã™ã‚‹ã‹\n(ãƒ©ãƒ³ã‚¿ã‚¤ãƒ æ™‚ã¯å¼·åˆ¶éè¡¨ç¤º)\nãƒ‡ãƒ•ã‚©ãƒ«ãƒˆï¼štrue")] private bool isShow = true;
         public bool IsShow => isShow;
-        [SerializeField, Header("ƒŒƒCƒ„[\nƒfƒtƒHƒ‹ƒgF0")] private int layer = 0;
+        [SerializeField, Header("ãƒ¬ã‚¤ãƒ¤ãƒ¼\nãƒ‡ãƒ•ã‚©ãƒ«ãƒˆï¼š0")] private int layer = 0;
         public int Layer => layer;
-        [SerializeField, Range(0.0f, 10.0f), Header("ü‚Ì‘¾‚³\nƒfƒtƒHƒ‹ƒgF1.0f")] private float thin = 1.0f;
+        [SerializeField, Range(0.0f, 10.0f), Header("ç·šã®å¤ªã•\nãƒ‡ãƒ•ã‚©ãƒ«ãƒˆï¼š1.0f")] private float thin = 1.0f;
         public float Thin => thin;
-        [SerializeField, Header("ü‚ÌF\nƒfƒtƒHƒ‹ƒgF0x83c35d")] private Color32 color = new(0x83, 0xc3, 0x5d, 0xff);
+        [SerializeField, Header("ç·šã®è‰²\nãƒ‡ãƒ•ã‚©ãƒ«ãƒˆï¼š0x83c35d")] private Color32 color = new(0x83, 0xc3, 0x5d, 0xff);
         public Color32 Color32 => color;
         public Color Color => color;
     }
@@ -290,10 +294,10 @@ namespace BorderSystem
     [Serializable]
     public sealed class Debugger
     {
-        [SerializeField, Header("ˆÈ‰º‚Ì‘S‚Ä‚Ìİ’è‚ğ–³Œø‚É‚·‚é\nƒfƒtƒHƒ‹ƒgFtrue")]
+        [SerializeField, Header("ä»¥ä¸‹ã®å…¨ã¦ã®è¨­å®šã‚’ç„¡åŠ¹ã«ã™ã‚‹\nãƒ‡ãƒ•ã‚©ãƒ«ãƒˆï¼štrue")]
         private bool isActive = true;
 
-        [SerializeField, Header("ƒGƒfƒBƒ^‚ÅƒvƒŒƒCƒ‚[ƒh’†‚É‚àBorder‚ğ•\¦‚·‚é\nƒfƒtƒHƒ‹ƒgFfalse")]
+        [SerializeField, Header("ã‚¨ãƒ‡ã‚£ã‚¿ã§ãƒ—ãƒ¬ã‚¤ãƒ¢ãƒ¼ãƒ‰ä¸­ã«ã‚‚Borderã‚’è¡¨ç¤ºã™ã‚‹\nãƒ‡ãƒ•ã‚©ãƒ«ãƒˆï¼šfalse")]
         private bool isShowBorderOnEditor_Playing = false;
         public bool IsShowBorderOnEditor_Playing => !isActive && isShowBorderOnEditor_Playing;
     }
@@ -301,7 +305,7 @@ namespace BorderSystem
     [Serializable]
     public sealed class Reference : IDisposable
     {
-        [SerializeField, Header("ƒsƒ“’B‚Ìe‚ÌTransform")] private Transform pinsParentTransform;
+        [SerializeField, Header("ãƒ”ãƒ³é”ã®è¦ªã®Transform")] private Transform pinsParentTransform;
         public Transform PinsParentTransform => pinsParentTransform;
         [SerializeField, Header("LineRenderer")] private LineRenderer lineRenderer;
         public LineRenderer LineRenderer => lineRenderer;
@@ -325,60 +329,61 @@ namespace BorderSystem
     }
 
     /// <summary>
-    /// ƒNƒ‰ƒCƒAƒ“ƒgƒ‚[ƒh‚ğæ“¾‚·‚é
+    /// ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆãƒ¢ãƒ¼ãƒ‰ã‚’å–å¾—ã™ã‚‹
     /// </summary>
     public enum ClientMode
     {
         /// <summary>
-        /// ƒGƒfƒBƒ^‚ÅÀs’†A‚©‚ÂƒvƒŒƒCƒ‚[ƒh’†‚Å‚È‚¢
+        /// ã‚¨ãƒ‡ã‚£ã‚¿ã§å®Ÿè¡Œä¸­ã€ã‹ã¤ãƒ—ãƒ¬ã‚¤ãƒ¢ãƒ¼ãƒ‰ä¸­ã§ãªã„
         /// </summary>
         Editor_Editing,
 
         /// <summary>
-        /// ƒGƒfƒBƒ^‚ÅÀs’†A‚©‚ÂƒvƒŒƒCƒ‚[ƒh’†
+        /// ã‚¨ãƒ‡ã‚£ã‚¿ã§å®Ÿè¡Œä¸­ã€ã‹ã¤ãƒ—ãƒ¬ã‚¤ãƒ¢ãƒ¼ãƒ‰ä¸­
         /// </summary>
         Editor_Playing,
 
         /// <summary>
-        /// ƒrƒ‹ƒhƒf[ƒ^‚ÅÀs’†
+        /// ãƒ“ãƒ«ãƒ‰ãƒ‡ãƒ¼ã‚¿ã§å®Ÿè¡Œä¸­
         /// </summary>
         Build
     }
 
     /// <summary>
-    /// staticƒNƒ‰ƒX
+    /// staticã‚¯ãƒ©ã‚¹
     /// </summary>
     public static class BorderEx
     {
         /// <summary>
-        /// <para>3ŸŒ³À”ƒxƒNƒgƒ‹‚ğ2ŸŒ³À”ƒxƒNƒgƒ‹‚É“WŠJ‚·‚é</para>
-        /// <para>ˆø”‚Ìx-zƒxƒNƒgƒ‹¬•ª‚ğx-y‚É“WŠJ‚µAy¬•ª‚Ìî•ñ‚ÍÌ‚Ä‚é</para>
+        /// <para>3æ¬¡å…ƒå®Ÿæ•°ãƒ™ã‚¯ãƒˆãƒ«ã‚’2æ¬¡å…ƒå®Ÿæ•°ãƒ™ã‚¯ãƒˆãƒ«ã«å±•é–‹ã™ã‚‹</para>
+        /// <para>å¼•æ•°ã®x-zãƒ™ã‚¯ãƒˆãƒ«æˆåˆ†ã‚’x-yã«å±•é–‹ã—ã€yæˆåˆ†ã®æƒ…å ±ã¯æ¨ã¦ã‚‹</para>
         /// </summary>
         public static Vector2 XOZ_To_XY(this Vector3 v) => new(v.x, v.z);
 
         /// <summary>
-        /// <para>2ŸŒ³À”ƒxƒNƒgƒ‹‚ğ3ŸŒ³À”ƒxƒNƒgƒ‹‚É•ÏŠ·‚·‚é</para>
-        /// <para>ˆø”‚ÌƒxƒNƒgƒ‹¬•ª‚ğx-z‚É“WŠJ‚µAˆø”‚Ìy‚Ì’l‚ğ—p‚¢‚ÄƒxƒNƒgƒ‹‚ğ\’z</para>
+        /// <para>2æ¬¡å…ƒå®Ÿæ•°ãƒ™ã‚¯ãƒˆãƒ«ã‚’3æ¬¡å…ƒå®Ÿæ•°ãƒ™ã‚¯ãƒˆãƒ«ã«å¤‰æ›ã™ã‚‹</para>
+        /// <para>å¼•æ•°ã®ãƒ™ã‚¯ãƒˆãƒ«æˆåˆ†ã‚’x-zã«å±•é–‹ã—ã€å¼•æ•°ã®yã®å€¤ã‚’ç”¨ã„ã¦ãƒ™ã‚¯ãƒˆãƒ«ã‚’æ§‹ç¯‰</para>
         /// </summary>
         public static Vector3 XY_To_XOZ(this Vector2 v, float y = 0) => new(v.x, y, v.y);
 
         /// <summary>
-        /// 2ŸŒ³À”ƒxƒNƒgƒ‹“¯m‚ÌAŠOÏ(ƒXƒJƒ‰[Ï)‚ğ‹‚ß‚é
+        /// <para>2æ¬¡å…ƒå®Ÿæ•°ãƒ™ã‚¯ãƒˆãƒ«åŒå£«ã®ã€å¤–ç©(ã‚¹ã‚«ãƒ©ãƒ¼)ã‚’æ±‚ã‚ã‚‹</para>
+        /// <para>æ­£ã®å ´åˆã€bã¯aã®å·¦å´ã«ã‚ã‚‹</para>
         /// </summary>
         public static float Cross(this (Vector2 a, Vector2 b) v) => v.a.x * v.b.y - v.a.y * v.b.x;
 
         /// <summary>
-        /// Action‚ğÀs‚·‚éƒ‰ƒbƒp[ƒƒ\ƒbƒh
+        /// Actionã‚’å®Ÿè¡Œã™ã‚‹ãƒ©ãƒƒãƒ‘ãƒ¼ãƒ¡ã‚½ãƒƒãƒ‰
         /// </summary>
         public static void Do(Action action) => action();
 
         /// <summary>
-        /// ‰½‚à‚µ‚È‚¢ƒƒ\ƒbƒh
+        /// ä½•ã‚‚ã—ãªã„ãƒ¡ã‚½ãƒƒãƒ‰
         /// </summary>
         public static void Pass() { return; }
 
         /// <summary>
-        /// ClientMode‚ğæ“¾‚·‚é
+        /// ClientModeã‚’å–å¾—ã™ã‚‹
         /// </summary>
         public static ClientMode GetClientMode()
         {

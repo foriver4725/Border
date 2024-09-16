@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 
@@ -37,17 +38,34 @@ namespace Test
 
         #endregion
 
-        Transform tf;
-
         private void OnStart()
         {
-            tf = Instantiate(reference.SpherePrefab, Vector3.zero, Quaternion.identity, transform).transform;
+            StartCoroutine(Coroutine());
         }
 
         private void OnUpdate()
         {
-            bool? b = reference.Border.IsIn(tf.position, property.Layer);
-            Debug.Log(b);
+
+        }
+
+        private IEnumerator Coroutine()
+        {
+            while (true)
+            {
+                MeshRenderer mr = Instantiate(reference.SpherePrefab, reference.Border.GetRandomPosition().Value,
+                    Quaternion.identity, transform).GetComponent<MeshRenderer>();
+                mr.material.color = reference.Border.IsIn(mr.transform.position, property.Layer) == true ?
+                    Color.blue : Color.red;
+                StartCoroutine(Wait(mr.gameObject));
+
+                yield return new WaitForSeconds(property.Interval);
+            }
+        }
+
+        private IEnumerator Wait(GameObject obj)
+        {
+            yield return new WaitForSeconds(10);
+            Destroy(obj);
         }
 
         private void OnDisable()
@@ -68,8 +86,10 @@ namespace Test
     internal sealed class Property
     {
         [SerializeField] private int layer;
+        [SerializeField] private float interval;
 
         internal int Layer => layer;
+        internal float Interval => interval;
     }
 
     [Serializable]

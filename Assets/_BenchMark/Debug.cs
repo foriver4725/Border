@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using UnityEngine;
 
 namespace BenchMark
@@ -27,7 +27,7 @@ namespace BenchMark
         {
             if (IsNullExist()) return;
 
-            // FPS‚ÌŒvZ(0.5•b‚²‚Æ)
+            // FPSã®è¨ˆç®—(0.5ç§’ã”ã¨)
             cnt++;
             float t = Time.realtimeSinceStartup - preT;
             if (t >= 0.5f)
@@ -37,13 +37,13 @@ namespace BenchMark
                 preT = Time.realtimeSinceStartup;
             }
 
-            // g—pƒƒ‚ƒŠ”‚Ìæ“¾
+            // ä½¿ç”¨ãƒ¡ãƒ¢ãƒªæ•°ã®å–å¾—
             allocatedMemory = UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong().ByteToMegabyte();
             unusedReservedMemory = UnityEngine.Profiling.Profiler.GetTotalUnusedReservedMemoryLong().ByteToMegabyte();
             reservedMemory = UnityEngine.Profiling.Profiler.GetTotalReservedMemoryLong().ByteToMegabyte();
             memoryP = allocatedMemory / reservedMemory;
 
-            // ƒfƒoƒbƒOƒeƒLƒXƒg‚ğXV(¬”“_ˆÈ‰º2Œ…)
+            // ãƒ‡ãƒãƒƒã‚°ãƒ†ã‚­ã‚¹ãƒˆã‚’æ›´æ–°(å°æ•°ç‚¹ä»¥ä¸‹2æ¡)
             debugText.text =
                 $"FPS: {fps:F2}\n" +
                 $"Memory(MB): {allocatedMemory:F2}/{reservedMemory:F2} ({memoryP:P2}, {unusedReservedMemory:F2} unused)";
