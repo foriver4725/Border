@@ -141,7 +141,6 @@ namespace BorderSystem
         /// <para>※ 交差しているとダメ</para>
         /// <para>※ 同じ座標にピンが2つあるとダメ</para>
         /// <para>※ 3点が同一直線状にあるとダメ</para>
-        /// <para>※ 反時計回りだとダメ</para>
         /// </summary>
         public Vector3? GetRandomPosition(float y = 0, float ofst = 0.01f)
         {
@@ -160,11 +159,30 @@ namespace BorderSystem
             catch (Exception) { return null; }
 
             // Transformのコレクションから、座標のコレクションを取得
-            static ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms) =>
-                transforms
-                .Select(e => e.position.XOZ_To_XY())
-                .ToList()
-                .AsReadOnly();
+            ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms)
+            {
+                var posList =
+                    transforms
+                    .Select(e => e.position.XOZ_To_XY())
+                    .ToList()
+                    .AsReadOnly();
+
+                // 反時計回りなら、逆順に並び替える
+                Vector2 sv = posList[0], ev = posList[1];
+                Vector2 v = ev - sv;
+                v = sv + v / 2 + new Vector2(v.y, -v.x) * (ofst * 10);  // 少しだけ右の座標
+                if (IsIn(v) != true)
+                {
+                    posList =
+                        posList
+                        .AsEnumerable()
+                        .Reverse()
+                        .ToList()
+                        .AsReadOnly();
+                }
+
+                return posList;
+            }
 
             // 三角形に分割する
             static ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2)>
