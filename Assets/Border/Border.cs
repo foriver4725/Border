@@ -375,66 +375,70 @@ namespace BorderSystem
             }
             catch (Exception) { return null; }
         }
-    }
 
-    [Serializable]
-    public sealed class Property
-    {
-        [SerializeField, Header("線を表示するか\n(ランタイム時は強制非表示)\nデフォルト：true")] private bool isShow = true;
-        public bool IsShow => isShow;
-        [SerializeField, Header("レイヤー\nデフォルト：0")] private int layer = 0;
-        public int Layer => layer;
-        [SerializeField, Range(0.0f, 10.0f), Header("線の太さ\nデフォルト：1.0f")] private float thin = 1.0f;
-        public float Thin => thin;
-        [SerializeField, Header("線の色\nデフォルト：0x83c35d")] private Color32 color = new(0x83, 0xc3, 0x5d, 0xff);
-        public Color32 Color32 => color;
-        public Color Color => color;
-    }
 
-    [Serializable]
-    public sealed class Debugger
-    {
-        [SerializeField, Header("以下の全ての設定を無効にする\nデフォルト：true")]
-        private bool isActive = true;
 
-        [SerializeField, Header("エディタでプレイモード中にもBorderを表示する\nデフォルト：false")]
-        private bool isShowBorderOnEditor_Playing = false;
-        public bool IsShowBorderOnEditor_Playing => !isActive && isShowBorderOnEditor_Playing;
-        [SerializeField, Header("ランタイム中、毎フレームBorderを更新する\nデフォルト：false")]
-        private bool isUpdateBorderEveryFrameOnRunTime = false;
-        public bool IsUpdateBorderEveryFrameOnRunTime => isUpdateBorderEveryFrameOnRunTime;
-    }
-
-    [Serializable]
-    public sealed class Reference : IDisposable
-    {
-        [SerializeField, Header("ピン達の親のTransform")] private Transform pinsParentTransform;
-        public Transform PinsParentTransform => pinsParentTransform;
-        [SerializeField, Header("LineRenderer")] private LineRenderer lineRenderer;
-        public LineRenderer LineRenderer => lineRenderer;
-        [SerializeField, Header("Material")] private Material material;
-        public Material Material => material;
-
-        public void Dispose()
+        [Serializable]
+        private sealed class Property
         {
-            pinsParentTransform = null;
-            lineRenderer = null;
-            material = null;
+            [SerializeField, Header("線を表示するか\n(ランタイム時は強制非表示)\nデフォルト：true")] private bool isShow = true;
+            public bool IsShow => isShow;
+            [SerializeField, Header("レイヤー\nデフォルト：0")] private int layer = 0;
+            public int Layer => layer;
+            [SerializeField, Range(0.0f, 10.0f), Header("線の太さ\nデフォルト：1.0f")] private float thin = 1.0f;
+            public float Thin => thin;
+            [SerializeField, Header("線の色\nデフォルト：0x83c35d")] private Color32 color = new(0x83, 0xc3, 0x5d, 0xff);
+            public Color32 Color32 => color;
+            public Color Color => color;
         }
 
-        public bool IsNullExist()
+        [Serializable]
+        private sealed class Debugger
         {
-            if (pinsParentTransform == null) return true;
-            if (lineRenderer == null) return true;
-            if (material == null) return true;
-            return false;
+            [SerializeField, Header("以下の全ての設定を無効にする\nデフォルト：true")]
+            private bool isActive = true;
+
+            [SerializeField, Header("エディタでプレイモード中にもBorderを表示する\nデフォルト：false")]
+            private bool isShowBorderOnEditor_Playing = false;
+            public bool IsShowBorderOnEditor_Playing => !isActive && isShowBorderOnEditor_Playing;
+            [SerializeField, Header("ランタイム中、毎フレームBorderを更新する\nデフォルト：false")]
+            private bool isUpdateBorderEveryFrameOnRunTime = false;
+            public bool IsUpdateBorderEveryFrameOnRunTime => isUpdateBorderEveryFrameOnRunTime;
+        }
+
+        [Serializable]
+        private sealed class Reference : IDisposable
+        {
+            [SerializeField, Header("ピン達の親のTransform")] private Transform pinsParentTransform;
+            public Transform PinsParentTransform => pinsParentTransform;
+            [SerializeField, Header("LineRenderer")] private LineRenderer lineRenderer;
+            public LineRenderer LineRenderer => lineRenderer;
+            [SerializeField, Header("Material")] private Material material;
+            public Material Material => material;
+
+            public void Dispose()
+            {
+                pinsParentTransform = null;
+                lineRenderer = null;
+                material = null;
+            }
+
+            public bool IsNullExist()
+            {
+                if (pinsParentTransform == null) return true;
+                if (lineRenderer == null) return true;
+                if (material == null) return true;
+                return false;
+            }
         }
     }
+
+
 
     /// <summary>
     /// クライアントモードを取得する
     /// </summary>
-    public enum ClientMode
+    internal enum ClientMode
     {
         /// <summary>
         /// エディタで実行中、かつプレイモード中でない
@@ -449,46 +453,46 @@ namespace BorderSystem
         /// <summary>
         /// ビルドデータで実行中
         /// </summary>
-        Build
+        Build,
     }
 
     /// <summary>
     /// staticクラス
     /// </summary>
-    public static class BorderEx
+    internal static class BorderEx
     {
         /// <summary>
         /// <para>3次元実数ベクトルを2次元実数ベクトルに展開する</para>
         /// <para>引数のx-zベクトル成分をx-yに展開し、y成分の情報は捨てる</para>
         /// </summary>
-        public static Vector2 XOZ_To_XY(this Vector3 v) => new(v.x, v.z);
+        internal static Vector2 XOZ_To_XY(this Vector3 v) => new(v.x, v.z);
 
         /// <summary>
         /// <para>2次元実数ベクトルを3次元実数ベクトルに変換する</para>
         /// <para>引数のベクトル成分をx-zに展開し、引数のyの値を用いてベクトルを構築</para>
         /// </summary>
-        public static Vector3 XY_To_XOZ(this Vector2 v, float y = 0) => new(v.x, y, v.y);
+        internal static Vector3 XY_To_XOZ(this Vector2 v, float y = 0) => new(v.x, y, v.y);
 
         /// <summary>
         /// <para>2次元実数ベクトル同士の、外積(スカラー)を求める</para>
         /// <para>正の場合、aはbの右側にある</para>
         /// </summary>
-        public static float Cross(this (Vector2 a, Vector2 b) v) => v.a.x * v.b.y - v.a.y * v.b.x;
+        internal static float Cross(this (Vector2 a, Vector2 b) v) => v.a.x * v.b.y - v.a.y * v.b.x;
 
         /// <summary>
         /// Actionを実行するラッパーメソッド
         /// </summary>
-        public static void Do(Action action) => action();
+        internal static void Do(Action action) => action();
 
         /// <summary>
         /// 何もしないメソッド
         /// </summary>
-        public static void Pass() { return; }
+        internal static void Pass() { return; }
 
         /// <summary>
         /// ClientModeを取得する
         /// </summary>
-        public static ClientMode GetClientMode()
+        internal static ClientMode GetClientMode()
         {
 #if UNITY_EDITOR && true
             return UnityEditor.EditorApplication.isPlaying ? ClientMode.Editor_Playing : ClientMode.Editor_Editing;
