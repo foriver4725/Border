@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2598337007106092287}
   - component: {fileID: 6583684094327466426}
   m_Layer: 0
-  m_Name: TestScript
+  m_Name: Manager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -45,8 +45,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   reference:
-    testSpherePrefab: {fileID: 1600941407277791898, guid: 299189674c1d3c548af61c35cf400508,
+    border: {fileID: 0}
+    ballPrefab: {fileID: 1600941407277791898, guid: 299189674c1d3c548af61c35cf400508,
       type: 3}
-    testMaterialRed: {fileID: 2100000, guid: c76195e8f702f87419235bb8d627c2e6, type: 2}
-    testMaterialGreen: {fileID: 2100000, guid: 57597bacc36efda43af93cf27dd82b77, type: 2}
-    testMaterialBlue: {fileID: 2100000, guid: 34712b5193bc3154e815d477e74b860a, type: 2}
+  property:
+    layer: 0
+    interval: 0
+  debugTMPro: {fileID: 0}

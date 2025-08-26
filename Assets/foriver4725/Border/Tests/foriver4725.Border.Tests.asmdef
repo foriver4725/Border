@@ -1,0 +1,17 @@
+{
+    "name": "foriver4725.Border.Tests",
+    "rootNamespace": "foriver4725.Border.Tests",
+    "references": [
+        "GUID:ef3d2e565ed244feaba1e5d219ea2ddb",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 3869600586480338227}
   - component: {fileID: 1717857544396345743}
   m_Layer: 0
-  m_Name: TestSphere
+  m_Name: Ball
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using UnityEngine;
 
-namespace BorderSystem
+namespace foriver4725.Border
 {
     [ExecuteAlways]
     public sealed class Border : MonoBehaviour
@@ -13,31 +13,31 @@ namespace BorderSystem
         [SerializeField, Header("デバッグ機能")] private Debugger debugger;
         [SerializeField, Header("参照をアタッチ(ノータッチでOK)")] private Reference reference;
 
-        private List<Transform> pinList = new();
+        private List<Transform> pinList = new(64);
 
-        private void OnEnable() => BorderEx.Do(BorderEx.GetClientMode() switch
+        private void OnEnable() => (BorderEx.GetClientMode() switch
         {
-            ClientMode.Editor_Editing => BorderEx.Pass,
+            ClientMode.Editor_Editing => null,
             ClientMode.Editor_Playing => UpdateBorder,
             ClientMode.Build => UpdateBorder,
-            _ => throw new Exception("無効な値です")
-        });
+            _ => null as Action
+        })?.Invoke();
 
-        private void OnDisable() => BorderEx.Do(BorderEx.GetClientMode() switch
+        private void OnDisable() => (BorderEx.GetClientMode() switch
         {
-            ClientMode.Editor_Editing => BorderEx.Pass,
+            ClientMode.Editor_Editing => null,
             ClientMode.Editor_Playing => Dispose,
             ClientMode.Build => Dispose,
-            _ => throw new Exception("無効な値です")
-        });
+            _ => null as Action
+        })?.Invoke();
 
-        private void Update() => BorderEx.Do(BorderEx.GetClientMode() switch
+        private void Update() => (BorderEx.GetClientMode() switch
         {
             ClientMode.Editor_Editing => UpdateBorder,
-            ClientMode.Editor_Playing => debugger.IsUpdateBorderEveryFrameOnRunTime ? UpdateBorder : BorderEx.Pass,
-            ClientMode.Build => debugger.IsUpdateBorderEveryFrameOnRunTime ? UpdateBorder : BorderEx.Pass,
-            _ => throw new Exception("無効な値です")
-        });
+            ClientMode.Editor_Playing => debugger.IsUpdateBorderEveryFrameOnRunTime ? UpdateBorder : null,
+            ClientMode.Build => debugger.IsUpdateBorderEveryFrameOnRunTime ? UpdateBorder : null,
+            _ => null as Action
+        })?.Invoke();
 
         /// <summary>
         /// 参照を破棄する(明示的null代入)
@@ -73,7 +73,7 @@ namespace BorderSystem
                     ClientMode.Editor_Editing => property.IsShow,
                     ClientMode.Editor_Playing => debugger.IsShowBorderOnEditor_Playing,
                     ClientMode.Build => false,
-                    _ => throw new Exception("無効な値です")
+                    _ => false,
                 };
                 reference.LineRenderer.enabled = isActive;
                 foreach (Transform e in reference.PinsParentTransform) e.GetComponent<MeshRenderer>().enabled = isActive;
@@ -85,13 +85,13 @@ namespace BorderSystem
                 for (int i = 0; i < pinNum; i++) pinList.Add(reference.PinsParentTransform.GetChild(i));
 
                 // ピンの配置が適切かどうか、チェック
-                var posList = pinList.Select(e => e.position.XOZ_To_XY()).ToList();
+                var posList = pinList.Select(e => e.position.XZ()).ToList();
                 string s = IsPinOK(posList.AsReadOnly());
                 if (s != null) Debug.LogWarning($"{s}。計算が正常に行われていない場合、まずこの可能性を検討してください");
 
                 // アクティブなら、マテリアルと色を設定し、線を描画する
                 if (!isActive) return;
-                Material mat = new(reference.Material) { color = property.Color };
+                Material mat = new(reference.Shader) { color = property.Color };
                 reference.LineRenderer.sharedMaterial = mat;
                 reference.LineRenderer.startWidth = property.Thin;
                 reference.LineRenderer.endWidth = property.Thin;
@@ -176,8 +176,8 @@ namespace BorderSystem
                 float th = 0;
                 for (int i = 0; i < pinList.Count; i++)
                 {
-                    Vector2 fromPinPos = pinList[i].position.XOZ_To_XY();
-                    Vector2 toPinPos = pinList[(i + 1) % pinList.Count].position.XOZ_To_XY();
+                    Vector2 fromPinPos = pinList[i].position.XZ();
+                    Vector2 toPinPos = pinList[(i + 1) % pinList.Count].position.XZ();
 
                     Vector2 fromVec = fromPinPos - pos;
                     Vector2 toVec = toPinPos - pos;
@@ -207,7 +207,7 @@ namespace BorderSystem
         /// <para>※ 3つ以上のピンが同一直線上にあるとダメ</para>
         /// </summary>
         public bool? IsIn(Vector3 pos, int? layer = null, bool isPinPositionsInclusive = true, float ofst = 0.01f)
-            => IsIn(pos.XOZ_To_XY(), layer, isPinPositionsInclusive, ofst);
+            => IsIn(pos.XZ(), layer, isPinPositionsInclusive, ofst);
 
         /// <summary>
         /// <para>ボーダー内のランダムな座標を返す(y座標は乱数の対象外)</para>
@@ -228,7 +228,7 @@ namespace BorderSystem
                 var val1 = DivideIntoTriangles(val0);
                 var val2 = GetRandomTriangle(val1);
                 var val3 = GetRandomPos(val2);
-                var val4 = val3.XY_To_XOZ(y);
+                var val4 = val3.X_Y(y);
 
                 return val4;
             }
@@ -237,7 +237,7 @@ namespace BorderSystem
             // Transformのコレクションから、座標のコレクションを取得
             ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms)
             {
-                var posList = transforms.Select(e => e.position.XOZ_To_XY()).ToList().AsReadOnly();
+                var posList = transforms.Select(e => e.position.XZ()).ToList().AsReadOnly();
 
                 // 反時計回りなら、逆順に並び替える
                 Vector2 sv = posList[0], ev = posList[1];
@@ -360,7 +360,7 @@ namespace BorderSystem
             {
                 if (pinList == null || pinList.Count <= 2) return null;
 
-                List<Vector2> posList = pinList.Select(e => e.position.XOZ_To_XY()).ToList();
+                List<Vector2> posList = pinList.Select(e => e.position.XZ()).ToList();
 
                 float sx = posList.Min(e => e.x), ex = posList.Max(e => e.x);
                 float sy = posList.Min(e => e.y), ey = posList.Max(e => e.y);
@@ -369,129 +369,82 @@ namespace BorderSystem
                 while (true)
                 {
                     Vector2 v = new(UnityEngine.Random.Range(sx, ex), UnityEngine.Random.Range(sy, ey));
-                    if (IsIn(v) == true) return v.XY_To_XOZ(y);
+                    if (IsIn(v) == true) return v.X_Y(y);
                     if (++cnt >= ushort.MaxValue) throw new Exception();
                 }
             }
             catch (Exception) { return null; }
         }
 
-
-
         [Serializable]
         private sealed class Property
         {
             [SerializeField, Header("線を表示するか\n(ランタイム時は強制非表示)\nデフォルト：true")] private bool isShow = true;
-            public bool IsShow => isShow;
             [SerializeField, Header("レイヤー\nデフォルト：0")] private int layer = 0;
-            public int Layer => layer;
             [SerializeField, Range(0.0f, 10.0f), Header("線の太さ\nデフォルト：1.0f")] private float thin = 1.0f;
-            public float Thin => thin;
             [SerializeField, Header("線の色\nデフォルト：0x83c35d")] private Color32 color = new(0x83, 0xc3, 0x5d, 0xff);
-            public Color32 Color32 => color;
-            public Color Color => color;
+
+            internal bool IsShow => isShow;
+            internal int Layer => layer;
+            internal float Thin => thin;
+            internal Color32 Color32 => color;
+            internal Color Color => color;
         }
 
         [Serializable]
         private sealed class Debugger
         {
-            [SerializeField, Header("以下の全ての設定を無効にする\nデフォルト：true")]
-            private bool isActive = true;
+            [SerializeField, Header("以下の全ての設定を無効にする\nデフォルト：true")] private bool isActive = true;
+            [SerializeField, Header("エディタでプレイモード中にもBorderを表示する\nデフォルト：false")] private bool isShowBorderOnEditor_Playing = false;
+            [SerializeField, Header("ランタイム中、毎フレームBorderを更新する\nデフォルト：false")] private bool isUpdateBorderEveryFrameOnRunTime = false;
 
-            [SerializeField, Header("エディタでプレイモード中にもBorderを表示する\nデフォルト：false")]
-            private bool isShowBorderOnEditor_Playing = false;
-            public bool IsShowBorderOnEditor_Playing => !isActive && isShowBorderOnEditor_Playing;
-            [SerializeField, Header("ランタイム中、毎フレームBorderを更新する\nデフォルト：false")]
-            private bool isUpdateBorderEveryFrameOnRunTime = false;
-            public bool IsUpdateBorderEveryFrameOnRunTime => isUpdateBorderEveryFrameOnRunTime;
+            internal bool IsShowBorderOnEditor_Playing => !isActive && isShowBorderOnEditor_Playing;
+            internal bool IsUpdateBorderEveryFrameOnRunTime => isUpdateBorderEveryFrameOnRunTime;
         }
 
         [Serializable]
         private sealed class Reference : IDisposable
         {
             [SerializeField, Header("ピン達の親のTransform")] private Transform pinsParentTransform;
-            public Transform PinsParentTransform => pinsParentTransform;
             [SerializeField, Header("LineRenderer")] private LineRenderer lineRenderer;
-            public LineRenderer LineRenderer => lineRenderer;
-            [SerializeField, Header("Material")] private Material material;
-            public Material Material => material;
+            [SerializeField, Header("Shader")] private Shader shader;
+
+            internal Transform PinsParentTransform => pinsParentTransform;
+            internal LineRenderer LineRenderer => lineRenderer;
+            internal Shader Shader => shader;
 
             public void Dispose()
             {
                 pinsParentTransform = null;
                 lineRenderer = null;
-                material = null;
+                shader = null;
             }
 
-            public bool IsNullExist()
+            internal bool IsNullExist()
             {
                 if (pinsParentTransform == null) return true;
                 if (lineRenderer == null) return true;
-                if (material == null) return true;
+                if (shader == null) return true;
                 return false;
             }
         }
     }
 
-
-
-    /// <summary>
-    /// クライアントモードを取得する
-    /// </summary>
-    internal enum ClientMode
+    internal enum ClientMode : byte
     {
-        /// <summary>
-        /// エディタで実行中、かつプレイモード中でない
-        /// </summary>
         Editor_Editing,
-
-        /// <summary>
-        /// エディタで実行中、かつプレイモード中
-        /// </summary>
         Editor_Playing,
-
-        /// <summary>
-        /// ビルドデータで実行中
-        /// </summary>
         Build,
     }
 
-    /// <summary>
-    /// staticクラス
-    /// </summary>
     internal static class BorderEx
     {
-        /// <summary>
-        /// <para>3次元実数ベクトルを2次元実数ベクトルに展開する</para>
-        /// <para>引数のx-zベクトル成分をx-yに展開し、y成分の情報は捨てる</para>
-        /// </summary>
-        internal static Vector2 XOZ_To_XY(this Vector3 v) => new(v.x, v.z);
+        internal static Vector2 XZ(this Vector3 v) => new(v.x, v.z);
+        internal static Vector3 X_Y(this Vector2 v, float y = 0) => new(v.x, y, v.y);
 
-        /// <summary>
-        /// <para>2次元実数ベクトルを3次元実数ベクトルに変換する</para>
-        /// <para>引数のベクトル成分をx-zに展開し、引数のyの値を用いてベクトルを構築</para>
-        /// </summary>
-        internal static Vector3 XY_To_XOZ(this Vector2 v, float y = 0) => new(v.x, y, v.y);
-
-        /// <summary>
-        /// <para>2次元実数ベクトル同士の、外積(スカラー)を求める</para>
-        /// <para>正の場合、aはbの右側にある</para>
-        /// </summary>
+        // 正の場合、aはbの右側にある
         internal static float Cross(this (Vector2 a, Vector2 b) v) => v.a.x * v.b.y - v.a.y * v.b.x;
 
-        /// <summary>
-        /// Actionを実行するラッパーメソッド
-        /// </summary>
-        internal static void Do(Action action) => action();
-
-        /// <summary>
-        /// 何もしないメソッド
-        /// </summary>
-        internal static void Pass() { return; }
-
-        /// <summary>
-        /// ClientModeを取得する
-        /// </summary>
         internal static ClientMode GetClientMode()
         {
 #if UNITY_EDITOR && true

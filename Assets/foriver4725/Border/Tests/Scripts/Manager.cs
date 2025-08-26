@@ -3,19 +3,18 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 
-using BorderSystem;
-
-namespace Test
+namespace foriver4725.Border.Tests
 {
-    internal sealed class TestScript : MonoBehaviour
+    internal sealed class Manager : MonoBehaviour
     {
         #region
 
         [SerializeField] private Reference reference;
         [SerializeField] private Property property;
         [SerializeField] private TextMeshProUGUI debugTMPro;
-        private BenchMark.Debug debug;
-        bool isFirstUpdate = true;
+
+        private Debug debug;
+        private bool isFirstUpdate = true;
 
         private void OnEnable()
         {
@@ -27,32 +26,19 @@ namespace Test
             if (isFirstUpdate)
             {
                 isFirstUpdate = false;
-
-                debug.Start();
-                OnStart();
+                StartCoroutine(CreateBallsAsync());
             }
 
             debug.Update();
-            OnUpdate();
         }
 
         #endregion
 
-        private void OnStart()
-        {
-            StartCoroutine(Coroutine());
-        }
-
-        private void OnUpdate()
-        {
-
-        }
-
-        private IEnumerator Coroutine()
+        private IEnumerator CreateBallsAsync()
         {
             while (true)
             {
-                MeshRenderer mr = Instantiate(reference.SpherePrefab, reference.Border.GetRandomPosition().Value,
+                MeshRenderer mr = Instantiate(reference.BallPrefab, reference.Border.GetRandomPosition().Value,
                     Quaternion.identity, transform).GetComponent<MeshRenderer>();
                 mr.material.color = reference.Border.IsIn(mr.transform.position, property.Layer) == true ?
                     Color.blue : Color.red;
@@ -96,24 +82,15 @@ namespace Test
     internal sealed class Reference : IDisposable
     {
         [SerializeField] private Border border;
-        [SerializeField] private GameObject testSpherePrefab;
-        [SerializeField] private Material testMaterialRed;
-        [SerializeField] private Material testMaterialGreen;
-        [SerializeField] private Material testMaterialBlue;
+        [SerializeField] private GameObject ballPrefab;
 
         internal Border Border => border;
-        internal GameObject SpherePrefab => testSpherePrefab;
-        internal Material MaterialRed => testMaterialRed;
-        internal Material MaterialGreen => testMaterialGreen;
-        internal Material MaterialBlue => testMaterialBlue;
+        internal GameObject BallPrefab => ballPrefab;
 
         public void Dispose()
         {
             border = null;
-            testSpherePrefab = null;
-            testMaterialRed = null;
-            testMaterialGreen = null;
-            testMaterialBlue = null;
+            ballPrefab = null;
         }
     }
 

@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace BenchMark
+namespace foriver4725.Border.Tests
 {
     internal sealed class Debug : IDisposable
     {
@@ -17,15 +17,12 @@ namespace BenchMark
         float memoryP = 0f;
 
         internal Debug(TMPro.TextMeshProUGUI debugText) => this.debugText = debugText;
+
         public void Dispose() => debugText = null;
-        public bool IsNullExist() => debugText == null;
-        public void Start()
+
+        internal void Update()
         {
-            if (IsNullExist()) return;
-        }
-        public void Update()
-        {
-            if (IsNullExist()) return;
+            if (debugText == null) return;
 
             // FPSの計算(0.5秒ごと)
             cnt++;
