@@ -9,9 +9,9 @@ namespace foriver4725.Border
     [ExecuteAlways]
     public sealed class Border : MonoBehaviour
     {
-        [SerializeField, Header("設定項目")] private Property property;
-        [SerializeField, Header("デバッグ機能")] private Debugger debugger;
-        [SerializeField, Header("参照をアタッチ(ノータッチでOK)")] private Reference reference;
+        [SerializeField, Header("Settings")] private Property property;
+        [SerializeField, Header("Debug Functions")] private Debugger debugger;
+        [SerializeField, Header("Attach References (No Need to Touch)")] private Reference reference;
 
         private List<Transform> pinList = new(64);
 
@@ -40,7 +40,7 @@ namespace foriver4725.Border
         })?.Invoke();
 
         /// <summary>
-        /// 参照を破棄する(明示的null代入)
+        /// Dispose references (explicit null assignment)
         /// </summary>
         private void Dispose()
         {
@@ -54,7 +54,7 @@ namespace foriver4725.Border
         }
 
         /// <summary>
-        /// Borderの状態を更新する
+        /// Update the state of Border
         /// </summary>
         private void UpdateBorder()
         {
@@ -62,12 +62,12 @@ namespace foriver4725.Border
             {
                 if (reference.IsNullExist())
                 {
-                    Debug.LogError("インスペクタでアタッチされていない参照が存在します。" +
-                        "エラーが付随している場合、まずこの可能性を検討して下さい");
+                    Debug.LogError("There are references not attached in the Inspector. " +
+                        "If errors are occurring, please consider this possibility first.");
                     return;
                 }
 
-                // アクティブ状態の設定
+                // Set active state
                 bool isActive = BorderEx.GetClientMode() switch
                 {
                     ClientMode.Editor_Editing => property.IsShow,
@@ -80,16 +80,16 @@ namespace foriver4725.Border
 
                 int pinNum = reference.PinsParentTransform.childCount;
 
-                // ピンのリストを更新
+                // Update pin list
                 pinList.Clear();
                 for (int i = 0; i < pinNum; i++) pinList.Add(reference.PinsParentTransform.GetChild(i));
 
-                // ピンの配置が適切かどうか、チェック
+                // Check if pin placement is valid
                 var posList = pinList.Select(e => e.position.XZ()).ToList();
                 string s = IsPinOK(posList.AsReadOnly());
-                if (s != null) Debug.LogWarning($"{s}。計算が正常に行われていない場合、まずこの可能性を検討してください");
+                if (s != null) Debug.LogWarning($"{s}. If calculations are not working correctly, consider this possibility first.");
 
-                // アクティブなら、マテリアルと色を設定し、線を描画する
+                // If active, set material and color, and draw line
                 if (!isActive) return;
                 Material mat = new(reference.Shader) { color = property.Color };
                 reference.LineRenderer.sharedMaterial = mat;
@@ -99,29 +99,29 @@ namespace foriver4725.Border
                 for (int i = 0; i < pinNum; i++) reference.LineRenderer.SetPosition(i, pinList[i].position);
                 reference.LineRenderer.SetPosition(pinNum, pinList[0].position);
             }
-            catch (Exception e) { Debug.LogError($"エラーがスローされました：{e}"); }
+            catch (Exception e) { Debug.LogError($"An error was thrown: {e}"); }
         }
 
         /// <summary>
-        /// <para>posListが以下のどれかに該当していたら、それを説明する文字列を返し、そうでないならnullを返す</para>
-        /// <para>・同じ座標にピンが2つ以上ある</para>
-        /// <para>・3つ以上のピンが同一直線上にある</para>
-        /// <para>・Borderが交差している</para>
+        /// <para>If posList matches any of the following, return a string explaining it; otherwise, return null</para>
+        /// <para>・Two or more pins exist at the same coordinates</para>
+        /// <para>・Three or more pins exist on the same straight line</para>
+        /// <para>・The Border intersects itself</para>
         /// </summary>
         private string IsPinOK(ReadOnlyCollection<Vector2> posList, float ofst = 0.01f)
         {
-            // 同じ座標にピンが2つ以上あるか？
+            // Two or more pins at the same coordinates?
             for (int i = 0; i < posList.Count; i++)
             {
                 for (int j = 0; j < posList.Count; j++)
                 {
                     if (i == j) continue;
 
-                    if (posList[i] == posList[j]) return "同じ座標にピンが2つ以上存在しています";
+                    if (posList[i] == posList[j]) return "Two or more pins exist at the same coordinates";
                 }
             }
 
-            // 3つ以上のピンが同一直線上にあるか？
+            // Three or more pins on the same straight line?
             for (int i = 0; i < posList.Count; i++)
             {
                 Vector2 p0 = posList[(i - 1 + posList.Count) % posList.Count];
@@ -130,11 +130,11 @@ namespace foriver4725.Border
 
                 if (Mathf.Abs((p1 - p0, p2 - p1).Cross()) < ofst)
                 {
-                    return "3つ以上のピンが同一直線状に存在しています";
+                    return "Three or more pins exist on the same straight line";
                 }
             }
 
-            // Borderが交差しているか？
+            // Border intersects itself?
             for (int i = 0; i < posList.Count; i++)
             {
                 for (int j = 0; j < posList.Count; j++)
@@ -149,7 +149,7 @@ namespace foriver4725.Border
                     float c2 = (q1 - q0, p0 - q0).Cross();
                     float c3 = (q1 - q0, p1 - q0).Cross();
 
-                    if (c0 * c1 < 0 && c2 * c3 < 0) return "Borderに交差している箇所が存在しています";
+                    if (c0 * c1 < 0 && c2 * c3 < 0) return "There are intersecting parts in the Border";
                 }
             }
 
@@ -157,14 +157,14 @@ namespace foriver4725.Border
         }
 
         /// <summary>
-        /// <para>範囲の中に含まれているかどうか調べる</para>
-        /// <para>計算不可の場合、nullを返す</para>
-        /// <para>レイヤーを指定していた場合、もしレイヤーが違うなら、falseを返す</para>
-        /// <para>いずれかのピンの座標と一致していた場合、デフォルトでtrueを返す</para>
-        /// <para>※※※ 注意点 ※※※</para>
-        /// <para>※ Borderが交差しているとダメ</para>
-        /// <para>※ 同じ座標にピンが2つ以上あるとダメ</para>
-        /// <para>※ 3つ以上のピンが同一直線上にあるとダメ</para>
+        /// <para>Check if the position is inside the border</para>
+        /// <para>Return null if calculation is not possible</para>
+        /// <para>If a layer is specified and does not match, return false</para>
+        /// <para>If it matches the coordinates of any pin, return true by default</para>
+        /// <para>*** Notes ***</para>
+        /// <para>※ Invalid if the Border intersects itself</para>
+        /// <para>※ Invalid if two or more pins exist at the same coordinates</para>
+        /// <para>※ Invalid if three or more pins exist on the same straight line</para>
         /// </summary>
         public bool? IsIn(Vector2 pos, int? layer = null, bool isPinPositionsInclusive = true, float ofst = 0.01f)
         {
@@ -197,26 +197,26 @@ namespace foriver4725.Border
         }
 
         /// <summary>
-        /// <para>範囲の中に含まれているかどうか調べる(y成分は無視される)</para>
-        /// <para>計算不可の場合、nullを返す</para>
-        /// <para>レイヤーを指定していた場合、もしレイヤーが違うなら、falseを返す</para>
-        /// <para>いずれかのピンの座標と一致していた場合、デフォルトでtrueを返す</para>
-        /// <para>※※※ 注意点 ※※※</para>
-        /// <para>※ Borderが交差しているとダメ</para>
-        /// <para>※ 同じ座標にピンが2つ以上あるとダメ</para>
-        /// <para>※ 3つ以上のピンが同一直線上にあるとダメ</para>
+        /// <para>Check if the position is inside the border (ignores y component)</para>
+        /// <para>Return null if calculation is not possible</para>
+        /// <para>If a layer is specified and does not match, return false</para>
+        /// <para>If it matches the coordinates of any pin, return true by default</para>
+        /// <para>*** Notes ***</para>
+        /// <para>※ Invalid if the Border intersects itself</para>
+        /// <para>※ Invalid if two or more pins exist at the same coordinates</para>
+        /// <para>※ Invalid if three or more pins exist on the same straight line</para>
         /// </summary>
         public bool? IsIn(Vector3 pos, int? layer = null, bool isPinPositionsInclusive = true, float ofst = 0.01f)
             => IsIn(pos.XZ(), layer, isPinPositionsInclusive, ofst);
 
         /// <summary>
-        /// <para>ボーダー内のランダムな座標を返す(y座標は乱数の対象外)</para>
-        /// <para>計算不可の場合、nullを返す</para>
-        /// <para>処理が重めなことに注意</para>
-        /// <para>※※※ 注意点 ※※※</para>
-        /// <para>※ Borderが交差しているとダメ</para>
-        /// <para>※ 同じ座標にピンが2つ以上あるとダメ</para>
-        /// <para>※ 3つ以上のピンが同一直線上にあるとダメ</para>
+        /// <para>Return a random position inside the border (y coordinate not randomized)</para>
+        /// <para>Return null if calculation is not possible</para>
+        /// <para>Note: This is a relatively heavy process</para>
+        /// <para>*** Notes ***</para>
+        /// <para>※ Invalid if the Border intersects itself</para>
+        /// <para>※ Invalid if two or more pins exist at the same coordinates</para>
+        /// <para>※ Invalid if three or more pins exist on the same straight line</para>
         /// </summary>
         public Vector3? GetRandomPosition(float y = 0, float ofst = 0.01f)
         {
@@ -234,21 +234,21 @@ namespace foriver4725.Border
             }
             catch (Exception) { return null; }
 
-            // Transformのコレクションから、座標のコレクションを取得
+            // Get a collection of positions from a collection of Transforms
             ReadOnlyCollection<Vector2> GetPosList(ReadOnlyCollection<Transform> transforms)
             {
                 var posList = transforms.Select(e => e.position.XZ()).ToList().AsReadOnly();
 
-                // 反時計回りなら、逆順に並び替える
+                // If counter-clockwise, reverse the order
                 Vector2 sv = posList[0], ev = posList[1];
                 Vector2 v = ev - sv;
-                v = sv + v / 2 + new Vector2(v.y, -v.x) * (ofst * 10);  // 少しだけ右の座標
+                v = sv + v / 2 + new Vector2(v.y, -v.x) * (ofst * 10);  // A slightly right-shifted position
                 if (IsIn(v) != true) posList = posList.AsEnumerable().Reverse().ToList().AsReadOnly();
 
                 return posList;
             }
 
-            // 三角形に分割する
+            // Divide into triangles
             static ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2)>
                 DivideIntoTriangles(ReadOnlyCollection<Vector2> posList)
             {
@@ -265,7 +265,7 @@ namespace foriver4725.Border
                         Vector2 p1 = remains[i];
                         Vector2 p2 = remains[(i + 1) % remains.Count];
 
-                        if ((p1 - p0, p2 - p1).Cross() >= 0) continue;  // 凹はダメ
+                        if ((p1 - p0, p2 - p1).Cross() >= 0) continue;  // Concave is not allowed
                         if (!IsEar(p0, p1, p2, remains.AsReadOnly())) continue;
 
                         triList.Add((p0, p1, p2));
@@ -278,14 +278,15 @@ namespace foriver4725.Border
 
                 return triList.AsReadOnly();
 
-                // 点abcをこの順に結んだ三角形を考える時、点pがその三角形の内部(境界を含む)にあるかどうか判定する
+                // When considering a triangle formed by connecting points a, b, c in this order,
+                // check whether point p is inside (including the boundary) of the triangle
                 static bool IsIn(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
                     => (p - a, b - a).Cross() >= 0 && (p - b, c - b).Cross() >= 0 && (p - c, a - c).Cross() >= 0;
 
-                // 三角形abcが、listによって表現される多角形の「耳」であるかどうか、判定する
+                // Determine whether triangle abc is an "ear" of the polygon represented by list
                 static bool IsEar(Vector2 a, Vector2 b, Vector2 c, ReadOnlyCollection<Vector2> list)
                 {
-                    // 他の頂点がこの三角形の内部にあったら、アウト
+                    // If any other vertex is inside this triangle, it's invalid
                     foreach (var e in list)
                     {
                         if (e == a || e == b || e == c) continue;
@@ -295,7 +296,7 @@ namespace foriver4725.Border
                 }
             }
 
-            // ランダムな三角形を抽出
+            // Extract a random triangle
             static (Vector2 p0, Vector2 p1, Vector2 p2)
                 GetRandomTriangle(ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2)> triList)
             {
@@ -309,11 +310,11 @@ namespace foriver4725.Border
 
                 return GetRandomTri(triPList);
 
-                // 三角形abcの面積を求める
+                // Calculate the area of triangle abc
                 static float CalcArea(Vector2 a, Vector2 b, Vector2 c)
                     => Mathf.Abs((b - a, c - a).Cross()) / 2;
 
-                // 与えられた確率に基づいて、ランダムに抽出する
+                // Randomly select based on the given probability
                 static (Vector2 p0, Vector2 p1, Vector2 p2) GetRandomTri
                     (ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2, float p)> triPList, float ofst = 0.01f)
                 {
@@ -331,28 +332,28 @@ namespace foriver4725.Border
                     return DelP(triPList[^1]);
                 }
 
-                // pの情報を捨てる
+                // Discard the probability information
                 static (Vector2 p0, Vector2 p1, Vector2 p2) DelP((Vector2 p0, Vector2 p1, Vector2 p2, float p) triP)
                     => (triP.p0, triP.p1, triP.p2);
             }
 
-            // 三角形内部(境界を含む)のランダムな座標を取得
+            // Get a random position inside a triangle (including boundaries)
             static Vector2 GetRandomPos((Vector2 p0, Vector2 p1, Vector2 p2) tri)
             {
                 float s = UnityEngine.Random.value, t = UnityEngine.Random.value;
-                if (s + t > 1) (s, t) = (1 - s, 1 - t);  // ここの誤差は無視する
+                if (s + t > 1) (s, t) = (1 - s, 1 - t);  // Ignore small errors here
                 return tri.p0 + s * (tri.p1 - tri.p0) + t * (tri.p2 - tri.p0);
             }
         }
 
         /// <summary>
-        /// <para>ボーダー内のランダムな座標を返す(y座標は乱数の対象外)</para>
-        /// <para>計算不可の場合、nullを返す</para>
-        /// <para>正確な一様分布ではないことに注意</para>
-        /// <para>※※※ 注意点 ※※※</para>
-        /// <para>※ Borderが交差しているとダメ</para>
-        /// <para>※ 同じ座標にピンが2つ以上あるとダメ</para>
-        /// <para>※ 3つ以上のピンが同一直線上にあるとダメ</para>
+        /// <para>Return a random position inside the border (y coordinate not randomized)</para>
+        /// <para>Return null if calculation is not possible</para>
+        /// <para>Note: This is not an exact uniform distribution</para>
+        /// <para>*** Notes ***</para>
+        /// <para>※ Invalid if the Border intersects itself</para>
+        /// <para>※ Invalid if two or more pins exist at the same coordinates</para>
+        /// <para>※ Invalid if three or more pins exist on the same straight line</para>
         /// </summary>
         public Vector3? GetRandomPositionSimply(float y = 0)
         {
@@ -379,10 +380,10 @@ namespace foriver4725.Border
         [Serializable]
         private sealed class Property
         {
-            [SerializeField, Header("線を表示するか\n(ランタイム時は強制非表示)\nデフォルト：true")] private bool isShow = true;
-            [SerializeField, Header("レイヤー\nデフォルト：0")] private int layer = 0;
-            [SerializeField, Range(0.0f, 10.0f), Header("線の太さ\nデフォルト：1.0f")] private float thin = 1.0f;
-            [SerializeField, Header("線の色\nデフォルト：0x83c35d")] private Color32 color = new(0x83, 0xc3, 0x5d, 0xff);
+            [SerializeField, Header("Show line?\n(Runtime is forced hidden)\nDefault: true")] private bool isShow = true;
+            [SerializeField, Header("Layer\nDefault: 0")] private int layer = 0;
+            [SerializeField, Range(0.0f, 10.0f), Header("Line thickness\nDefault: 1.0f")] private float thin = 1.0f;
+            [SerializeField, Header("Line color\nDefault: 0x83c35d")] private Color32 color = new(0x83, 0xc3, 0x5d, 0xff);
 
             internal bool IsShow => isShow;
             internal int Layer => layer;
@@ -394,9 +395,9 @@ namespace foriver4725.Border
         [Serializable]
         private sealed class Debugger
         {
-            [SerializeField, Header("以下の全ての設定を無効にする\nデフォルト：true")] private bool isActive = true;
-            [SerializeField, Header("エディタでプレイモード中にもBorderを表示する\nデフォルト：false")] private bool isShowBorderOnEditor_Playing = false;
-            [SerializeField, Header("ランタイム中、毎フレームBorderを更新する\nデフォルト：false")] private bool isUpdateBorderEveryFrameOnRunTime = false;
+            [SerializeField, Header("Disable all settings below\nDefault: true")] private bool isActive = true;
+            [SerializeField, Header("Show Border in play mode (Editor)\nDefault: false")] private bool isShowBorderOnEditor_Playing = false;
+            [SerializeField, Header("Update Border every frame during runtime\nDefault: false")] private bool isUpdateBorderEveryFrameOnRunTime = false;
 
             internal bool IsShowBorderOnEditor_Playing => !isActive && isShowBorderOnEditor_Playing;
             internal bool IsUpdateBorderEveryFrameOnRunTime => isUpdateBorderEveryFrameOnRunTime;
@@ -405,7 +406,7 @@ namespace foriver4725.Border
         [Serializable]
         private sealed class Reference : IDisposable
         {
-            [SerializeField, Header("ピン達の親のTransform")] private Transform pinsParentTransform;
+            [SerializeField, Header("Parent Transform of pins")] private Transform pinsParentTransform;
             [SerializeField, Header("LineRenderer")] private LineRenderer lineRenderer;
             [SerializeField, Header("Shader")] private Shader shader;
 
@@ -442,7 +443,7 @@ namespace foriver4725.Border
         internal static Vector2 XZ(this Vector3 v) => new(v.x, v.z);
         internal static Vector3 X_Y(this Vector2 v, float y = 0) => new(v.x, y, v.y);
 
-        // 正の場合、aはbの右側にある
+        // If positive, a is to the right of b
         internal static float Cross(this (Vector2 a, Vector2 b) v) => v.a.x * v.b.y - v.a.y * v.b.x;
 
         internal static ClientMode GetClientMode()
