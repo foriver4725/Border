@@ -50,11 +50,13 @@ namespace foriver4725.Border
         {
             reference.Dispose();
             pinList.Clear();
+            getRandomPosition_divideIntoTriangles_outTriList.Clear();
 
             property = null;
             debugger = null;
             reference = null;
             pinList = null;
+            getRandomPosition_divideIntoTriangles_outTriList = null;
         }
 
         /// <summary>
