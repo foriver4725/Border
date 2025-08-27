@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 //TODO: 全体的にnullチェックとか頑張る
@@ -16,6 +15,9 @@ namespace foriver4725.Border
         [SerializeField, Header("Attach References (No Need to Touch)")] private Reference reference;
 
         private List<Transform> pinList = new(64);
+
+        // Used in calculations
+        private List<(Vector2 p0, Vector2 p1, Vector2 p2)> getRandomPosition_divideIntoTriangles_outTriList = new(1024);
 
         private void OnEnable() => (BorderEx.GetClientMode() switch
         {
@@ -177,9 +179,9 @@ namespace foriver4725.Border
         /// If a layer is specified and does not match, return false; if -1, skip the check<br/>
         /// If it matches the coordinates of any pin, return true by default<br/>
         /// *** Notes ***<br/>
-        /// ※ Invalid if the Border intersects itself<br/>
-        /// ※ Invalid if two or more pins exist at the same coordinates<br/>
-        /// ※ Invalid if three or more pins exist on the same straight line<br/>
+        /// - Invalid if the Border intersects itself<br/>
+        /// - Invalid if two or more pins exist at the same coordinates<br/>
+        /// - Invalid if three or more pins exist on the same straight line<br/>
         /// </summary>
         public bool IsIn(Vector2 pos, int layer = -1, bool isPinPositionsInclusive = true, float ofst = 0.01f)
         {
@@ -225,10 +227,11 @@ namespace foriver4725.Border
         /// If a layer is specified and does not match, return false<br/>
         /// If it matches the coordinates of any pin, return true by default<br/>
         /// *** Notes ***<br/>
-        /// ※ Invalid if the Border intersects itself<br/>
-        /// ※ Invalid if two or more pins exist at the same coordinates<br/>
-        /// ※ Invalid if three or more pins exist on the same straight line<br/>
+        /// - Invalid if the Border intersects itself<br/>
+        /// - Invalid if two or more pins exist at the same coordinates<br/>
+        /// - Invalid if three or more pins exist on the same straight line<br/>
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsIn(Vector3 pos, int layer = -1, bool isPinPositionsInclusive = true, float ofst = 0.01f)
             => IsIn(pos.ToXZ(), layer, isPinPositionsInclusive, ofst);
 
@@ -237,9 +240,9 @@ namespace foriver4725.Border
         /// Return Vector3.zero if calculation is not possible<br/>
         /// Note: This is a relatively heavy process<br/>
         /// *** Notes ***<br/>
-        /// ※ Invalid if the Border intersects itself<br/>
-        /// ※ Invalid if two or more pins exist at the same coordinates<br/>
-        /// ※ Invalid if three or more pins exist on the same straight line<br/>
+        /// - Invalid if the Border intersects itself<br/>
+        /// - Invalid if two or more pins exist at the same coordinates<br/>
+        /// - Invalid if three or more pins exist on the same straight line<br/>
         /// </summary>
         public Vector3 GetRandomPosition(float y = 0, float ofst = 0.01f)
         {
@@ -251,14 +254,11 @@ namespace foriver4725.Border
                     return Vector3.zero;
                 }
 
-                //TODO
-
-                Span<Vector2> val0 = stackalloc Vector2[pinList.Count];
-                GetPosCollection(pinList, val0);
-                var val1 = DivideIntoTriangles(val0);
-                var val2 = GetRandomTriangle(val1);
-
-                return GetRandomPos(val2).ToX_Y(y);
+                Span<Vector2> getRandomPosition_divideIntoTriangles_outCollection = stackalloc Vector2[pinList.Count];
+                GetPosCollection(pinList, getRandomPosition_divideIntoTriangles_outCollection);
+                DivideIntoTriangles(getRandomPosition_divideIntoTriangles_outCollection, getRandomPosition_divideIntoTriangles_outTriList);
+                var tri = GetRandomTriangle(getRandomPosition_divideIntoTriangles_outTriList);
+                return GetRandomPos(tri).ToX_Y(y);
             }
             catch (Exception)
             {
@@ -268,7 +268,7 @@ namespace foriver4725.Border
 
             // Get a collection of positions from a collection of Transforms
             // The length of the returned collection is the same as that of the input collection
-            void GetPosCollection(IReadOnlyList<Transform> transforms, Span<Vector2> outSpan)
+            void GetPosCollection(IReadOnlyList<Transform> transforms, Span<Vector2> outCollection)
             {
                 if (transforms == null || transforms.Count <= 1)
                 {
@@ -277,7 +277,7 @@ namespace foriver4725.Border
                 }
 
                 int length = transforms.Count;
-                if (outSpan.Length != length)
+                if (outCollection.Length != length)
                 {
                     Debug.LogWarning("The length of the output Span must match the number of Transforms.");
                     return;
@@ -289,61 +289,79 @@ namespace foriver4725.Border
                     if (tf == null)
                     {
                         Debug.LogWarning($"The Transform at index {i} is null.");
-                        outSpan[i] = Vector2.zero;
+                        outCollection[i] = Vector2.zero;
                         continue;
                     }
 
-                    outSpan[i] = tf.position.ToXZ();
+                    outCollection[i] = tf.position.ToXZ();
                 }
 
                 // If counter-clockwise, reverse the order
-                Vector2 sv = outSpan[0], ev = outSpan[1];
+                Vector2 sv = outCollection[0], ev = outCollection[1];
                 Vector2 v = ev - sv;
                 v = sv + v / 2 + new Vector2(v.y, -v.x) * (ofst * 10);  // A slightly right-shifted position
                 if (!IsIn(v))
-                    outSpan.Reverse();
+                    outCollection.Reverse();
             }
 
             // Divide into triangles
-            static ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2)>
-                DivideIntoTriangles(ReadOnlyCollection<Vector2> posList) //TODO
+            // The returned collection should be reserved enough
+            static void DivideIntoTriangles(ReadOnlySpan<Vector2> posCollection, List<(Vector2 p0, Vector2 p1, Vector2 p2)> outTriList)
             {
-                List<(Vector2 p0, Vector2 p1, Vector2 p2)> triList = new();
-
-                List<Vector2> remains = new(posList);
-
-                while (remains.Count >= 3)
+                if (outTriList == null)
                 {
+                    Debug.LogWarning("The output List for triangles is null.");
+                    return;
+                }
+
+                outTriList.Clear();
+
+                Span<Vector2> remains = stackalloc Vector2[posCollection.Length];
+                posCollection.CopyTo(remains);
+
+                while (remains.Length >= 3)
+                {
+                    int length = remains.Length;
+
                     bool isFound = false;
-                    for (int i = 0; i < remains.Count; i++)
+                    for (int i = 0; i < length; i++)
                     {
-                        Vector2 p0 = remains[(i - 1 + remains.Count) % remains.Count];
+                        Vector2 p0 = remains[(i - 1 + length) % length];
                         Vector2 p1 = remains[i];
-                        Vector2 p2 = remains[(i + 1) % remains.Count];
+                        Vector2 p2 = remains[(i + 1) % length];
 
                         if ((p1 - p0, p2 - p1).Cross() >= 0) continue;  // Concave is not allowed
-                        if (!IsEar(p0, p1, p2, remains.AsReadOnly())) continue;
+                        if (!IsEar(p0, p1, p2, remains)) continue;
 
-                        triList.Add((p0, p1, p2));
-                        remains.RemoveAt(i);
+                        outTriList.Add((p0, p1, p2));
+                        {
+                            // remains.RemoveAt(i);
+                            Span<Vector2> newRemains = stackalloc Vector2[length - 1];
+                            for (int j = 0, k = 0; j < length; j++)
+                            {
+                                if (j == i) continue;
+                                newRemains[k++] = remains[j];
+                            }
+                            remains = newRemains;
+                        }
                         isFound = true;
                         break;
                     }
                     if (!isFound) break;
                 }
 
-                return triList.AsReadOnly();
-
                 // When considering a triangle formed by connecting points a, b, c in this order,
                 // check whether point p is inside (including the boundary) of the triangle
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 static bool IsIn(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
                     => (p - a, b - a).Cross() >= 0 && (p - b, c - b).Cross() >= 0 && (p - c, a - c).Cross() >= 0;
 
-                // Determine whether triangle abc is an "ear" of the polygon represented by list
-                static bool IsEar(Vector2 a, Vector2 b, Vector2 c, ReadOnlyCollection<Vector2> list)
+                // Determine whether triangle abc is an "ear" of the polygon represented by collection
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                static bool IsEar(Vector2 a, Vector2 b, Vector2 c, ReadOnlySpan<Vector2> collection)
                 {
                     // If any other vertex is inside this triangle, it's invalid
-                    foreach (var e in list)
+                    foreach (Vector2 e in collection)
                     {
                         if (e == a || e == b || e == c) continue;
                         if (IsIn(e, a, b, c)) return false;
@@ -354,30 +372,41 @@ namespace foriver4725.Border
 
             // Extract a random triangle
             static (Vector2 p0, Vector2 p1, Vector2 p2)
-                GetRandomTriangle(ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2)> triList) //TODO
+                GetRandomTriangle(IReadOnlyList<(Vector2 p0, Vector2 p1, Vector2 p2)> triList)
             {
-                ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2, float s)> triAreaList
-                    = triList.Select(e => (e.p0, e.p1, e.p2, CalcArea(e.p0, e.p1, e.p2))).ToList().AsReadOnly();
+                Span<(Vector2 p0, Vector2 p1, Vector2 p2, float s)> triAreaSpan = stackalloc (Vector2, Vector2, Vector2, float)[triList.Count];
+                for (int i = 0; i < triList.Count; i++)
+                {
+                    var (p0, p1, p2) = triList[i];
+                    triAreaSpan[i] = (p0, p1, p2, CalcArea(p0, p1, p2));
+                }
 
-                float areaSum = triAreaList.Sum(e => e.s);
+                float areaSum = 0;
+                foreach (var (p0, p1, p2, s) in triAreaSpan)
+                    areaSum += s;
 
-                ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2, float p)> triPList
-                   = triAreaList.Select(e => (e.p0, e.p1, e.p2, e.s / areaSum)).ToList().AsReadOnly();
+                Span<(Vector2 p0, Vector2 p1, Vector2 p2, float p)> triPSpan = stackalloc (Vector2, Vector2, Vector2, float)[triAreaSpan.Length];
+                for (int i = 0; i < triAreaSpan.Length; i++)
+                {
+                    var (p0, p1, p2, s) = triAreaSpan[i];
+                    triPSpan[i] = (p0, p1, p2, s / areaSum);
+                }
 
-                return GetRandomTri(triPList);
+                return GetRandomTri(triPSpan);
 
                 // Calculate the area of triangle abc
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 static float CalcArea(Vector2 a, Vector2 b, Vector2 c)
-                    => Mathf.Abs((b - a, c - a).Cross()) / 2;
+                    => Mathf.Abs((b - a, c - a).Cross()) * 0.5f;
 
                 // Randomly select based on the given probability
                 static (Vector2 p0, Vector2 p1, Vector2 p2) GetRandomTri
-                    (ReadOnlyCollection<(Vector2 p0, Vector2 p1, Vector2 p2, float p)> triPList, float ofst = 0.01f)
+                    (ReadOnlySpan<(Vector2 p0, Vector2 p1, Vector2 p2, float p)> triPSpan, float ofst = 0.01f)
                 {
                     float p = UnityEngine.Random.value;
 
                     float cnt = 0.0f;
-                    foreach (var e in triPList)
+                    foreach (var e in triPSpan)
                     {
                         float sp = cnt;
                         float ep = cnt + e.p;
@@ -385,15 +414,17 @@ namespace foriver4725.Border
                         cnt += e.p;
                     }
 
-                    return DelP(triPList[^1]);
+                    return DelP(triPSpan[^1]);
                 }
 
                 // Discard the probability information
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 static (Vector2 p0, Vector2 p1, Vector2 p2) DelP((Vector2 p0, Vector2 p1, Vector2 p2, float p) triP)
                     => (triP.p0, triP.p1, triP.p2);
             }
 
             // Get a random position inside a triangle (including boundaries)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             static Vector2 GetRandomPos((Vector2 p0, Vector2 p1, Vector2 p2) tri)
             {
                 float s = UnityEngine.Random.value, t = UnityEngine.Random.value;
@@ -407,9 +438,9 @@ namespace foriver4725.Border
         /// Return Vector3.zero if calculation is not possible<br/>
         /// Note: This is not an exact uniform distribution<br/>
         /// *** Notes ***<br/>
-        /// ※ Invalid if the Border intersects itself<br/>
-        /// ※ Invalid if two or more pins exist at the same coordinates<br/>
-        /// ※ Invalid if three or more pins exist on the same straight line<br/>
+        /// - Invalid if the Border intersects itself<br/>
+        /// - Invalid if two or more pins exist at the same coordinates<br/>
+        /// - Invalid if three or more pins exist on the same straight line<br/>
         /// </summary>
         public Vector3 GetRandomPositionSimply(float y = 0)
         {
