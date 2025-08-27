@@ -38,7 +38,7 @@ namespace foriver4725.Border.Tests
         {
             while (true)
             {
-                MeshRenderer mr = Instantiate(reference.BallPrefab, reference.Border.GetRandomPosition().Value,
+                MeshRenderer mr = Instantiate(reference.BallPrefab, reference.Border.GetRandomPosition(),
                     Quaternion.identity, transform).GetComponent<MeshRenderer>();
                 mr.material.color = reference.Border.IsIn(mr.transform.position, property.Layer) == true ?
                     Color.blue : Color.red;
