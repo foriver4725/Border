@@ -6,7 +6,7 @@ using UnityEngine;
 namespace foriver4725.Border
 {
     [ExecuteAlways]
-    public sealed class Border : MonoBehaviour
+    public sealed class Border : MonoBehaviour, IBorder
     {
         [SerializeField, Header("Settings")] private Property property;
         [SerializeField, Header("Debug Functions")] private Debugger debugger;
@@ -102,7 +102,7 @@ namespace foriver4725.Border
                 // Check if pin placement is valid
                 Span<Vector2> posSpan = stackalloc Vector2[pinNum];
                 for (int i = 0; i < pinNum; i++)
-                    posSpan[i] = pinList[i].position.ToXZ();
+                    posSpan[i] = pinList[i].position.XZ();
                 string s = IsPinOK(posSpan);
                 if (string.IsNullOrEmpty(s) == false)
                     Debug.LogWarning($"{s}. If calculations are not working correctly, consider this possibility first.");
@@ -130,12 +130,6 @@ namespace foriver4725.Border
             }
         }
 
-        /// <summary>
-        /// If posList matches any of the following, return a string explaining it; otherwise, return null<br/>
-        /// - Two or more pins exist at the same coordinates<br/>
-        /// - Three or more pins exist on the same straight line<br/>
-        /// - The Border intersects itself<br/>
-        /// </summary>
         private static string IsPinOK(ReadOnlySpan<Vector2> posList)
         {
             int length = posList.Length;
@@ -181,38 +175,34 @@ namespace foriver4725.Border
             return null;
         }
 
-        /// <summary>
-        /// Check if the position is inside the border<br/>
-        /// Return false if calculation is not possible<br/>
-        /// If a layer is specified and does not match, return false; if -1, skip the check<br/>
-        /// If it matches the coordinates of any pin, return true by default<br/>
-        /// *** Notes ***<br/>
-        /// - Invalid if the Border intersects itself<br/>
-        /// - Invalid if two or more pins exist at the same coordinates<br/>
-        /// - Invalid if three or more pins exist on the same straight line<br/>
-        /// </summary>
-        public bool IsIn(Vector2 pos, int layer = -1, bool isPinPositionsInclusive = true)
+        public bool DoContains(Vector2 pos, ReadOnlySpan<byte> layers, out bool outResult)
         {
             try
             {
-                if (pinList == null || pinList.Count <= 2)
+                byte myLayer = property.Layer;
+                bool hasValidLayer = false;
+                foreach (int l in layers)
                 {
-                    Debug.LogWarning("There are not enough pins to form a Border.");
-                    return false;
+                    if (myLayer == l)
+                    {
+                        hasValidLayer = true;
+                        break;
+                    }
                 }
-                if (layer != -1 && property.Layer != layer) return false;
+                if (!hasValidLayer)
+                {
+                    outResult = false;
+                    return true;
+                }
 
                 float th = 0;
                 for (int i = 0; i < pinList.Count; i++)
                 {
-                    Vector2 fromPinPos = pinList[i].position.ToXZ();
-                    Vector2 toPinPos = pinList[(i + 1) % pinList.Count].position.ToXZ();
+                    Vector2 fromPinPos = pinList[i].position.XZ();
+                    Vector2 toPinPos = pinList[(i + 1) % pinList.Count].position.XZ();
 
                     Vector2 fromVec = fromPinPos - pos;
                     Vector2 toVec = toPinPos - pos;
-
-                    if (fromVec.sqrMagnitude < Tolerance) return isPinPositionsInclusive;
-                    if (toVec.sqrMagnitude < Tolerance) return isPinPositionsInclusive;
 
                     float dth = Mathf.Acos(Vector2.Dot(toVec.normalized, fromVec.normalized));
                     if ((fromVec, toVec).Cross() < 0) dth *= -1;
@@ -220,108 +210,131 @@ namespace foriver4725.Border
                     th += dth;
                 }
 
-                return Mathf.Abs(th) >= Tolerance;
+                outResult = Mathf.Abs(th) >= Tolerance;
+                return true;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Debug.LogWarning("An error occurred during the calculation. Please check the pin placements.");
+                Debug.LogError($"An error was thrown: {e}");
+                outResult = false;
                 return false;
             }
         }
-
-        /// <summary>
-        /// Check if the position is inside the border (ignores y component)<br/>
-        /// Return false if calculation is not possible<br/>
-        /// If a layer is specified and does not match, return false<br/>
-        /// If it matches the coordinates of any pin, return true by default<br/>
-        /// *** Notes ***<br/>
-        /// - Invalid if the Border intersects itself<br/>
-        /// - Invalid if two or more pins exist at the same coordinates<br/>
-        /// - Invalid if three or more pins exist on the same straight line<br/>
-        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsIn(Vector3 pos, int layer = -1, bool isPinPositionsInclusive = true)
-            => IsIn(pos.ToXZ(), layer, isPinPositionsInclusive);
+        public bool DoContains(Vector2 pos, out bool outResult) => DoContains(pos, stackalloc byte[0], out outResult);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector2 pos, byte layer, out bool outResult) => DoContains(pos, stackalloc byte[1] { layer }, out outResult);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector2 pos) => DoContains(pos, out bool result) ? result : false;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector2 pos, byte layer) => DoContains(pos, layer, out bool result) ? result : false;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector2 pos, ReadOnlySpan<byte> layers) => DoContains(pos, layers, out bool result) ? result : false;
 
-        /// <summary>
-        /// Return a random position inside the border (y coordinate not randomized)<br/>
-        /// Return Vector3.zero if calculation is not possible<br/>
-        /// Note: This is a relatively heavy process<br/>
-        /// *** Notes ***<br/>
-        /// - Invalid if the Border intersects itself<br/>
-        /// - Invalid if two or more pins exist at the same coordinates<br/>
-        /// - Invalid if three or more pins exist on the same straight line<br/>
-        /// </summary>
-        public Vector3 GetRandomPosition(float y = 0)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector3 pos, ReadOnlySpan<byte> layers, out bool outResult) => DoContains(pos.XZ(), layers, out outResult);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector3 pos, out bool outResult) => DoContains(pos.XZ(), out outResult);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector3 pos, byte layer, out bool outResult) => DoContains(pos.XZ(), layer, out outResult);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector3 pos) => DoContains(pos.XZ());
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector3 pos, byte layer) => DoContains(pos.XZ(), layer);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector3 pos, ReadOnlySpan<byte> layers) => DoContains(pos.XZ(), layers);
+
+        public bool GetRandomPositionSimply(float y, out Vector3 outResult)
         {
             try
             {
-                if (pinList == null || pinList.Count <= 2)
+                Span<Vector2> posSpan = stackalloc Vector2[pinList.Count];
+                for (int i = 0; i < pinList.Count; i++)
+                    posSpan[i] = pinList[i].position.XZ();
+
+                float sx = float.MaxValue, ex = float.MinValue;
+                float sy = float.MaxValue, ey = float.MinValue;
+                foreach (Vector2 pos in posSpan)
                 {
-                    Debug.LogWarning("There are not enough pins to form a Border.");
-                    return Vector3.zero;
+                    sx = Mathf.Min(sx, pos.x); ex = Mathf.Max(ex, pos.x);
+                    sy = Mathf.Min(sy, pos.y); ey = Mathf.Max(ey, pos.y);
                 }
 
+                int cnt = 0;
+                while (true)
+                {
+                    Vector2 v = new(UnityEngine.Random.Range(sx, ex), UnityEngine.Random.Range(sy, ey));
+                    if (DoContains(v))
+                    {
+                        outResult = v.X_Y(y);
+                        return true;
+                    }
+                    if (++cnt >= ushort.MaxValue)
+                    {
+                        Debug.LogError("The calculation is taking too long");
+                        outResult = Vector3.zero;
+                        return false;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"An error was thrown: {e}");
+                outResult = Vector3.zero;
+                return false;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool GetRandomPositionSimply(out Vector2 outResult)
+        {
+            bool r = GetRandomPositionSimply(0, out Vector3 v);
+            outResult = v.XZ();
+            return r;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector2 GetRandomPositionSimply() => GetRandomPositionSimply(out Vector2 result) ? result : Vector2.zero;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 GetRandomPositionSimply(float y) => GetRandomPositionSimply(y, out Vector3 result) ? result : Vector3.zero;
+
+        public bool GetRandomPositionAccurately(float y, out Vector3 outResult)
+        {
+            try
+            {
                 Span<Vector2> getRandomPosition_divideIntoTriangles_outCollection = stackalloc Vector2[pinList.Count];
                 GetPosCollection(pinList, getRandomPosition_divideIntoTriangles_outCollection);
                 DivideIntoTriangles(getRandomPosition_divideIntoTriangles_outCollection, getRandomPosition_divideIntoTriangles_outTriList);
-                var tri = GetRandomTriangle(getRandomPosition_divideIntoTriangles_outTriList);
-                return GetRandomPos(tri).ToX_Y(y);
+                (Vector2 p0, Vector2 p1, Vector2 p2) = GetRandomTriangle(getRandomPosition_divideIntoTriangles_outTriList);
+                outResult = GetRandomPos(p0, p1, p2).X_Y(y);
+                return true;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Debug.LogWarning("An error occurred during the calculation. Please check the pin placements.");
-                return Vector3.zero;
+                Debug.LogError($"An error was thrown: {e}");
+                outResult = Vector3.zero;
+                return false;
             }
 
             // Get a collection of positions from a collection of Transforms
-            // The length of the returned collection is the same as that of the input collection
+            // The length of the returned collection should be the same as that of the input collection
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             void GetPosCollection(IReadOnlyList<Transform> transforms, Span<Vector2> outCollection)
             {
-                if (transforms == null || transforms.Count <= 1)
-                {
-                    Debug.LogWarning("The input collection of Transforms is null or has insufficient elements.");
-                    return;
-                }
-
-                int length = transforms.Count;
-                if (outCollection.Length != length)
-                {
-                    Debug.LogWarning("The length of the output Span must match the number of Transforms.");
-                    return;
-                }
-
-                for (int i = 0; i < length; i++)
-                {
-                    Transform tf = transforms[i];
-                    if (tf == null)
-                    {
-                        Debug.LogWarning($"The Transform at index {i} is null.");
-                        outCollection[i] = Vector2.zero;
-                        continue;
-                    }
-
-                    outCollection[i] = tf.position.ToXZ();
-                }
+                for (int i = 0; i < transforms.Count; i++)
+                    outCollection[i] = transforms[i].position.XZ();
 
                 // If counter-clockwise, reverse the order
                 Vector2 sv = outCollection[0], ev = outCollection[1];
                 Vector2 v = ev - sv;
                 v = sv + v / 2 + new Vector2(v.y, -v.x) * (Tolerance * 10);  // A slightly right-shifted position
-                if (!IsIn(v))
+                if (!DoContains(v))
                     outCollection.Reverse();
             }
 
             // Divide into triangles
             // The returned collection should be reserved enough
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             static void DivideIntoTriangles(ReadOnlySpan<Vector2> posCollection, List<(Vector2 p0, Vector2 p1, Vector2 p2)> outTriList)
             {
-                if (outTriList == null)
-                {
-                    Debug.LogWarning("The output List for triangles is null.");
-                    return;
-                }
-
                 outTriList.Clear();
 
                 Span<Vector2> remains = stackalloc Vector2[posCollection.Length];
@@ -361,7 +374,7 @@ namespace foriver4725.Border
                 // When considering a triangle formed by connecting points a, b, c in this order,
                 // check whether point p is inside (including the boundary) of the triangle
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                static bool IsIn(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
+                static bool IsInside(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
                     => (p - a, b - a).Cross() >= 0 && (p - b, c - b).Cross() >= 0 && (p - c, a - c).Cross() >= 0;
 
                 // Determine whether triangle abc is an "ear" of the polygon represented by collection
@@ -372,15 +385,15 @@ namespace foriver4725.Border
                     foreach (Vector2 e in collection)
                     {
                         if (e == a || e == b || e == c) continue;
-                        if (IsIn(e, a, b, c)) return false;
+                        if (IsInside(e, a, b, c)) return false;
                     }
                     return true;
                 }
             }
 
             // Extract a random triangle
-            static (Vector2 p0, Vector2 p1, Vector2 p2)
-                GetRandomTriangle(IReadOnlyList<(Vector2 p0, Vector2 p1, Vector2 p2)> triList)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static (Vector2 p0, Vector2 p1, Vector2 p2) GetRandomTriangle(IReadOnlyList<(Vector2 p0, Vector2 p1, Vector2 p2)> triList)
             {
                 Span<(Vector2 p0, Vector2 p1, Vector2 p2, float s)> triAreaSpan = stackalloc (Vector2, Vector2, Vector2, float)[triList.Count];
                 for (int i = 0; i < triList.Count; i++)
@@ -408,8 +421,8 @@ namespace foriver4725.Border
                     => Mathf.Abs((b - a, c - a).Cross()) * 0.5f;
 
                 // Randomly select based on the given probability
-                static (Vector2 p0, Vector2 p1, Vector2 p2) GetRandomTri
-                    (ReadOnlySpan<(Vector2 p0, Vector2 p1, Vector2 p2, float p)> triPSpan, float ofst = 0.01f)
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                static (Vector2 p0, Vector2 p1, Vector2 p2) GetRandomTri(ReadOnlySpan<(Vector2 p0, Vector2 p1, Vector2 p2, float p)> triPSpan)
                 {
                     float p = UnityEngine.Random.value;
 
@@ -433,64 +446,24 @@ namespace foriver4725.Border
 
             // Get a random position inside a triangle (including boundaries)
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static Vector2 GetRandomPos((Vector2 p0, Vector2 p1, Vector2 p2) tri)
+            static Vector2 GetRandomPos(Vector2 p0, Vector2 p1, Vector2 p2)
             {
                 float s = UnityEngine.Random.value, t = UnityEngine.Random.value;
                 if (s + t > 1) (s, t) = (1 - s, 1 - t);  // Ignore small errors here
-                return tri.p0 + s * (tri.p1 - tri.p0) + t * (tri.p2 - tri.p0);
+                return p0 + s * (p1 - p0) + t * (p2 - p0);
             }
         }
-
-        /// <summary>
-        /// Return a random position inside the border (y coordinate not randomized)<br/>
-        /// Return Vector3.zero if calculation is not possible<br/>
-        /// Note: This is not an exact uniform distribution<br/>
-        /// *** Notes ***<br/>
-        /// - Invalid if the Border intersects itself<br/>
-        /// - Invalid if two or more pins exist at the same coordinates<br/>
-        /// - Invalid if three or more pins exist on the same straight line<br/>
-        /// </summary>
-        public Vector3 GetRandomPositionSimply(float y = 0)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool GetRandomPositionAccurately(out Vector2 outResult)
         {
-            try
-            {
-                if (pinList == null || pinList.Count <= 2)
-                {
-                    Debug.LogWarning("There are not enough pins to form a Border.");
-                    return Vector3.zero;
-                }
-
-                Span<Vector2> posSpan = stackalloc Vector2[pinList.Count];
-                for (int i = 0; i < pinList.Count; i++)
-                    posSpan[i] = pinList[i].position.ToXZ();
-
-                float sx = float.MaxValue, ex = float.MinValue;
-                float sy = float.MaxValue, ey = float.MinValue;
-                foreach (Vector2 pos in posSpan)
-                {
-                    sx = Mathf.Min(sx, pos.x); ex = Mathf.Max(ex, pos.x);
-                    sy = Mathf.Min(sy, pos.y); ey = Mathf.Max(ey, pos.y);
-                }
-
-                int cnt = 0;
-                while (true)
-                {
-                    Vector2 v = new(UnityEngine.Random.Range(sx, ex), UnityEngine.Random.Range(sy, ey));
-                    if (IsIn(v))
-                        return v.ToX_Y(y);
-                    if (++cnt >= ushort.MaxValue)
-                    {
-                        Debug.LogWarning("Failed to find a position inside the Border after many attempts. The Border may be too narrow or complex.");
-                        return Vector3.zero;
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                Debug.LogWarning("An error occurred during the calculation. Please check the pin placements.");
-                return Vector3.zero;
-            }
+            bool r = GetRandomPositionAccurately(0, out Vector3 v);
+            outResult = v.XZ();
+            return r;
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector2 GetRandomPositionAccurately() => GetRandomPositionAccurately(out Vector2 result) ? result : Vector2.zero;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 GetRandomPositionAccurately(float y) => GetRandomPositionAccurately(y, out Vector3 result) ? result : Vector3.zero;
 
         [Serializable]
         private sealed class Property
@@ -546,9 +519,9 @@ namespace foriver4725.Border
     internal static class BorderEx
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static Vector2 ToXZ(this Vector3 v) => new(v.x, v.z);
+        internal static Vector2 XZ(this Vector3 v) => new(v.x, v.z);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static Vector3 ToX_Y(this Vector2 v, float y = 0) => new(v.x, y, v.y);
+        internal static Vector3 X_Y(this Vector2 v, float y = 0) => new(v.x, y, v.y);
 
         // If positive, a is to the right of b
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
