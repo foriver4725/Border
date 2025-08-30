@@ -18,19 +18,21 @@ Download the asset package from [the latest release](https://github.com/foriver4
 Place the *Border* prefab in your scene and move the pin child objects.<br/>
 Lines will be drawn in the order of the pins in the hierarchy.<br/>
 Note: The Y coordinate is ignored during calculation, so you don’t need to worry about it.<br/>
-From the Border component, you can specify the line color and thickness.<br/>
-By assigning layers, you can group Borders together, and in the calculation process introduced later, you can exclude specific layers if needed.<br/>
+From the *Border* component, you can specify the line color and thickness.<br/>
+By assigning layers, you can group *Border*s together, and in the calculation process introduced later, you can exclude specific layers if needed.<br/>
 
 <img height="256" alt="border_pins" src="https://github.com/user-attachments/assets/ffebdc95-0560-438c-afea-b267632d07dc" />
 <img height="512" alt="border_component" src="https://github.com/user-attachments/assets/f309f510-031f-470f-9cb8-e47b3e9554d4" />
 
 ### Usage from Scripts
-The methods provided by the Border component can be found in the `IBorder` interface (a full list is also provided below).<br/>
-Obtain a reference to the Border component and call the required methods as needed.<br/>
+The methods provided by the *Border* component can be found in the `IBorder` interface (a full list is also provided below).<br/>
+Obtain a reference to the *Border* component and call the required methods as needed.<br/>
 All of these methods are designed to run with **zero allocations** and are aggressively inlined wherever possible.<br/>
 For reference, profiling results for one million executions are shown below.<br/>
 
 <img height="256" alt="border_performance" src="https://github.com/user-attachments/assets/be38d80a-e028-4790-8d8c-7d2b32aba458" />
+
+As mentioned earlier, you can specify layers. In the overload of the `DoContains` method that accepts layers as an argument, the *Border* checks whether it belongs to any of the provided layer candidates. If it doesn’t, the containment check will automatically fail.<br/>
 
 ```cs
 using System;
