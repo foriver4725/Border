@@ -179,20 +179,23 @@ namespace foriver4725.Border
         {
             try
             {
-                byte myLayer = property.Layer;
-                bool hasValidLayer = false;
-                foreach (int l in layers)
+                if (layers.Length > 0)
                 {
-                    if (myLayer == l)
+                    byte myLayer = property.Layer;
+                    bool hasValidLayer = false;
+                    foreach (int l in layers)
                     {
-                        hasValidLayer = true;
-                        break;
+                        if (myLayer == l)
+                        {
+                            hasValidLayer = true;
+                            break;
+                        }
                     }
-                }
-                if (!hasValidLayer)
-                {
-                    outResult = false;
-                    return true;
+                    if (!hasValidLayer)
+                    {
+                        outResult = false;
+                        return true;
+                    }
                 }
 
                 float th = 0;
