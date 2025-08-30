@@ -25,7 +25,7 @@ By assigning layers, you can group *Border*s together, and in the calculation pr
 <img height="512" alt="border_component" src="https://github.com/user-attachments/assets/f309f510-031f-470f-9cb8-e47b3e9554d4" />
 
 ### Usage from Scripts
-The methods provided by the *Border* component can be found in the `IBorder` interface (a full list is also provided below).<br/>
+The methods provided by the *Border* component can be found in the [`IBorder`](https://github.com/foriver4725/Border/blob/main/Assets/foriver4725/Border/Assets/IBorder.cs) interface (a full list is also provided below).<br/>
 Obtain a reference to the *Border* component and call the required methods as needed.<br/>
 All of these methods are designed to run with **zero allocations** and are aggressively inlined wherever possible.<br/>
 For reference, profiling results for one million executions are shown below.<br/>
