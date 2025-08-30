@@ -204,6 +204,12 @@ namespace foriver4725.Border
                     Vector2 fromVec = fromPinPos - pos;
                     Vector2 toVec = toPinPos - pos;
 
+                    if (fromVec.sqrMagnitude < Tolerance || toVec.sqrMagnitude < Tolerance)
+                    {
+                        outResult = true;
+                        return true;
+                    }
+
                     float dth = Mathf.Acos(Vector2.Dot(toVec.normalized, fromVec.normalized));
                     if ((fromVec, toVec).Cross() < 0) dth *= -1;
 
