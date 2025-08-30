@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
-//TODO: 全体的にnullチェックとか頑張る
-
 namespace foriver4725.Border
 {
     [ExecuteAlways]
@@ -14,59 +12,46 @@ namespace foriver4725.Border
         [SerializeField, Header("Debug Functions")] private Debugger debugger;
         [SerializeField, Header("Attach References (No Need to Touch)")] private Reference reference;
 
-        private List<Transform> pinList = new(64);
+        private List<Transform> pinList = null;
+        private MaterialPropertyBlock mpb = null;
 
         // Used in calculations
-        private List<(Vector2 p0, Vector2 p1, Vector2 p2)> getRandomPosition_divideIntoTriangles_outTriList = new(1024);
+        private List<(Vector2 p0, Vector2 p1, Vector2 p2)> getRandomPosition_divideIntoTriangles_outTriList = null;
+        private static readonly int ShaderColorID = Shader.PropertyToID("_Color");
 
-        private void OnEnable() => (BorderEx.GetClientMode() switch
-        {
-            ClientMode.Editor_Editing => null,
-            ClientMode.Editor_Playing => UpdateBorder,
-            ClientMode.Build => UpdateBorder,
-            _ => null as Action
-        })?.Invoke();
+        // Constants
+        private static readonly float Tolerance = 0.01f;
 
-        private void OnDisable() => (BorderEx.GetClientMode() switch
+        private void OnEnable()
         {
-            ClientMode.Editor_Editing => null,
-            ClientMode.Editor_Playing => Dispose,
-            ClientMode.Build => Dispose,
-            _ => null as Action
-        })?.Invoke();
+            pinList = new(64);
+            mpb = new();
+            getRandomPosition_divideIntoTriangles_outTriList = new(1024);
+
+            UpdateBorder();
+        }
 
         private void Update() => (BorderEx.GetClientMode() switch
         {
             ClientMode.Editor_Editing => UpdateBorder,
             ClientMode.Editor_Playing => debugger.IsUpdateBorderEveryFrameOnRunTime ? UpdateBorder : null,
             ClientMode.Build => debugger.IsUpdateBorderEveryFrameOnRunTime ? UpdateBorder : null,
-            _ => null as Action
-        })?.Invoke();
+            _ => null as Action<bool>,
+        })?.Invoke(false);
 
-        /// <summary>
-        /// Dispose references (explicit null assignment)
-        /// </summary>
-        private void Dispose()
+        private void OnDisable()
         {
-            reference.Dispose();
+            UpdateBorder(doForciblyDisable: true);
+
             pinList.Clear();
             getRandomPosition_divideIntoTriangles_outTriList.Clear();
-
-            property = null;
-            debugger = null;
-            reference = null;
-            pinList = null;
-            getRandomPosition_divideIntoTriangles_outTriList = null;
         }
 
-        /// <summary>
-        /// Update the state of Border
-        /// </summary>
-        private void UpdateBorder()
+        private void UpdateBorder(bool doForciblyDisable = false)
         {
             try
             {
-                if (reference.IsNullExist())
+                if (reference.DoesNullExists())
                 {
                     Debug.LogError("There are references not attached in the Inspector. " +
                         "If errors are occurring, please consider this possibility first.");
@@ -74,7 +59,7 @@ namespace foriver4725.Border
                 }
 
                 // Set active state
-                bool isActive = BorderEx.GetClientMode() switch
+                bool isActive = !doForciblyDisable && BorderEx.GetClientMode() switch
                 {
                     ClientMode.Editor_Editing => property.IsShow,
                     ClientMode.Editor_Playing => debugger.IsShowBorderOnEditor_Playing,
@@ -82,17 +67,32 @@ namespace foriver4725.Border
                     _ => false,
                 };
                 reference.LineRenderer.enabled = isActive;
-                foreach (Transform e in reference.PinsParentTransform)
+                for (int i = 0; i < reference.PinsParentTransform.childCount; i++)
                 {
+                    Transform e = reference.PinsParentTransform.GetChild(i);
+                    if (e == null)
+                    {
+                        Debug.LogWarning($"A pin at index {i} is null. Please remove it.");
+                        continue;
+                    }
+
                     if (e.TryGetComponent(out MeshRenderer renderer) == false)
                     {
                         Debug.LogWarning($"A pin ({e.name}) is missing a MeshRenderer component. Please add one.");
                         continue;
                     }
+
                     renderer.enabled = isActive;
                 }
 
                 int pinNum = reference.PinsParentTransform.childCount;
+                if (pinNum < 3)
+                {
+                    if (isActive)
+                        Debug.LogWarning("There are not enough pins to form a Border. At least 3 pins are required.");
+                    reference.LineRenderer.positionCount = 0;
+                    return;
+                }
 
                 // Update pin list
                 pinList.Clear();
@@ -104,13 +104,18 @@ namespace foriver4725.Border
                 for (int i = 0; i < pinNum; i++)
                     posSpan[i] = pinList[i].position.ToXZ();
                 string s = IsPinOK(posSpan);
-                if (s != null)
+                if (string.IsNullOrEmpty(s) == false)
                     Debug.LogWarning($"{s}. If calculations are not working correctly, consider this possibility first.");
 
                 // If active, set material and color, and draw line
                 if (!isActive) return;
-                Material mat = new(reference.Shader) { color = property.Color }; //TODO
-                reference.LineRenderer.sharedMaterial = mat;
+                {
+                    reference.LineRenderer.GetPropertyBlock(mpb);
+                    mpb.SetColor(ShaderColorID, property.Color);
+                    reference.LineRenderer.SetPropertyBlock(mpb);
+                    reference.LineRenderer.startColor = property.Color;
+                    reference.LineRenderer.endColor = property.Color;
+                }
                 reference.LineRenderer.startWidth = property.Thin;
                 reference.LineRenderer.endWidth = property.Thin;
                 reference.LineRenderer.positionCount = pinNum + 1;
@@ -121,6 +126,7 @@ namespace foriver4725.Border
             catch (Exception e)
             {
                 Debug.LogError($"An error was thrown: {e}");
+                return;
             }
         }
 
@@ -130,7 +136,7 @@ namespace foriver4725.Border
         /// - Three or more pins exist on the same straight line<br/>
         /// - The Border intersects itself<br/>
         /// </summary>
-        private static string IsPinOK(ReadOnlySpan<Vector2> posList, float ofst = 0.01f)
+        private static string IsPinOK(ReadOnlySpan<Vector2> posList)
         {
             int length = posList.Length;
 
@@ -150,7 +156,7 @@ namespace foriver4725.Border
                 Vector2 p1 = posList[i];
                 Vector2 p2 = posList[(i + 1) % length];
 
-                if (Mathf.Abs((p1 - p0, p2 - p1).Cross()) < ofst)
+                if (Mathf.Abs((p1 - p0, p2 - p1).Cross()) < Tolerance)
                     return "Three or more pins exist on the same straight line";
             }
 
@@ -185,7 +191,7 @@ namespace foriver4725.Border
         /// - Invalid if two or more pins exist at the same coordinates<br/>
         /// - Invalid if three or more pins exist on the same straight line<br/>
         /// </summary>
-        public bool IsIn(Vector2 pos, int layer = -1, bool isPinPositionsInclusive = true, float ofst = 0.01f)
+        public bool IsIn(Vector2 pos, int layer = -1, bool isPinPositionsInclusive = true)
         {
             try
             {
@@ -205,8 +211,8 @@ namespace foriver4725.Border
                     Vector2 fromVec = fromPinPos - pos;
                     Vector2 toVec = toPinPos - pos;
 
-                    if (fromVec.sqrMagnitude < ofst) return isPinPositionsInclusive;
-                    if (toVec.sqrMagnitude < ofst) return isPinPositionsInclusive;
+                    if (fromVec.sqrMagnitude < Tolerance) return isPinPositionsInclusive;
+                    if (toVec.sqrMagnitude < Tolerance) return isPinPositionsInclusive;
 
                     float dth = Mathf.Acos(Vector2.Dot(toVec.normalized, fromVec.normalized));
                     if ((fromVec, toVec).Cross() < 0) dth *= -1;
@@ -214,7 +220,7 @@ namespace foriver4725.Border
                     th += dth;
                 }
 
-                return Mathf.Abs(th) >= ofst;
+                return Mathf.Abs(th) >= Tolerance;
             }
             catch (Exception)
             {
@@ -234,8 +240,8 @@ namespace foriver4725.Border
         /// - Invalid if three or more pins exist on the same straight line<br/>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsIn(Vector3 pos, int layer = -1, bool isPinPositionsInclusive = true, float ofst = 0.01f)
-            => IsIn(pos.ToXZ(), layer, isPinPositionsInclusive, ofst);
+        public bool IsIn(Vector3 pos, int layer = -1, bool isPinPositionsInclusive = true)
+            => IsIn(pos.ToXZ(), layer, isPinPositionsInclusive);
 
         /// <summary>
         /// Return a random position inside the border (y coordinate not randomized)<br/>
@@ -246,7 +252,7 @@ namespace foriver4725.Border
         /// - Invalid if two or more pins exist at the same coordinates<br/>
         /// - Invalid if three or more pins exist on the same straight line<br/>
         /// </summary>
-        public Vector3 GetRandomPosition(float y = 0, float ofst = 0.01f)
+        public Vector3 GetRandomPosition(float y = 0)
         {
             try
             {
@@ -301,7 +307,7 @@ namespace foriver4725.Border
                 // If counter-clockwise, reverse the order
                 Vector2 sv = outCollection[0], ev = outCollection[1];
                 Vector2 v = ev - sv;
-                v = sv + v / 2 + new Vector2(v.y, -v.x) * (ofst * 10);  // A slightly right-shifted position
+                v = sv + v / 2 + new Vector2(v.y, -v.x) * (Tolerance * 10);  // A slightly right-shifted position
                 if (!IsIn(v))
                     outCollection.Reverse();
             }
@@ -513,28 +519,18 @@ namespace foriver4725.Border
         }
 
         [Serializable]
-        private sealed class Reference : IDisposable
+        private sealed class Reference
         {
             [SerializeField, Header("Parent Transform of pins")] private Transform pinsParentTransform;
             [SerializeField, Header("LineRenderer")] private LineRenderer lineRenderer;
-            [SerializeField, Header("Shader")] private Shader shader;
 
             internal Transform PinsParentTransform => pinsParentTransform;
             internal LineRenderer LineRenderer => lineRenderer;
-            internal Shader Shader => shader;
 
-            public void Dispose()
-            {
-                pinsParentTransform = null;
-                lineRenderer = null;
-                shader = null;
-            }
-
-            internal bool IsNullExist()
+            internal bool DoesNullExists()
             {
                 if (pinsParentTransform == null) return true;
                 if (lineRenderer == null) return true;
-                if (shader == null) return true;
                 return false;
             }
         }
@@ -549,12 +545,16 @@ namespace foriver4725.Border
 
     internal static class BorderEx
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector2 ToXZ(this Vector3 v) => new(v.x, v.z);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector3 ToX_Y(this Vector2 v, float y = 0) => new(v.x, y, v.y);
 
         // If positive, a is to the right of b
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static float Cross(this (Vector2 a, Vector2 b) v) => v.a.x * v.b.y - v.a.y * v.b.x;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static ClientMode GetClientMode()
         {
 #if UNITY_EDITOR && true
