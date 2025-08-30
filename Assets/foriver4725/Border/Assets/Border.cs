@@ -234,24 +234,44 @@ namespace foriver4725.Border
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DoContains(Vector2 pos, byte layer, out bool outResult) => DoContains(pos, stackalloc byte[1] { layer }, out outResult);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector2 pos, IReadOnlyList<byte> layers, out bool outResult)
+        {
+            Span<byte> layerSpan = stackalloc byte[layers.Count];
+            for (int i = 0; i < layers.Count; i++)
+                layerSpan[i] = layers[i];
+            return DoContains(pos, layerSpan, out outResult);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DoContains(Vector2 pos) => DoContains(pos, out bool result) ? result : false;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DoContains(Vector2 pos, byte layer) => DoContains(pos, layer, out bool result) ? result : false;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DoContains(Vector2 pos, ReadOnlySpan<byte> layers) => DoContains(pos, layers, out bool result) ? result : false;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector2 pos, IReadOnlyList<byte> layers) => DoContains(pos, layers, out bool result) ? result : false;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool DoContains(Vector3 pos, ReadOnlySpan<byte> layers, out bool outResult) => DoContains(pos.XZ(), layers, out outResult);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos, out bool outResult) => DoContains(pos.XZ(), out outResult);
+        public bool DoContains(Vector3 pos, out bool outResult) => DoContains(pos, stackalloc byte[0], out outResult);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos, byte layer, out bool outResult) => DoContains(pos.XZ(), layer, out outResult);
+        public bool DoContains(Vector3 pos, byte layer, out bool outResult) => DoContains(pos, stackalloc byte[1] { layer }, out outResult);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos) => DoContains(pos.XZ());
+        public bool DoContains(Vector3 pos, IReadOnlyList<byte> layers, out bool outResult)
+        {
+            Span<byte> layerSpan = stackalloc byte[layers.Count];
+            for (int i = 0; i < layers.Count; i++)
+                layerSpan[i] = layers[i];
+            return DoContains(pos, layerSpan, out outResult);
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos, byte layer) => DoContains(pos.XZ(), layer);
+        public bool DoContains(Vector3 pos) => DoContains(pos, out bool result) ? result : false;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos, ReadOnlySpan<byte> layers) => DoContains(pos.XZ(), layers);
+        public bool DoContains(Vector3 pos, byte layer) => DoContains(pos, layer, out bool result) ? result : false;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector3 pos, ReadOnlySpan<byte> layers) => DoContains(pos, layers, out bool result) ? result : false;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool DoContains(Vector3 pos, IReadOnlyList<byte> layers) => DoContains(pos, layers, out bool result) ? result : false;
 
         public bool GetRandomPositionSimply(float y, out Vector3 outResult)
         {

@@ -61,6 +61,8 @@
         "*.meta": "yaml",
         "*.prefab": "yaml",
         "*.unity": "yaml",
+        "ios": "cpp",
+        "set": "cpp"
     },
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.patterns": {
