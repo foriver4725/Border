@@ -38,10 +38,9 @@ namespace foriver4725.Border.Tests
         {
             while (true)
             {
-                MeshRenderer mr = Instantiate(reference.BallPrefab, reference.Border.GetRandomPosition(),
+                MeshRenderer mr = Instantiate(reference.BallPrefab, reference.Border.GetRandomPositionAccurately(),
                     Quaternion.identity, transform).GetComponent<MeshRenderer>();
-                mr.material.color = reference.Border.IsIn(mr.transform.position, property.Layer) == true ?
-                    Color.blue : Color.red;
+                mr.material.color = reference.Border.DoContains(mr.transform.position, property.Layer) ? Color.blue : Color.red;
                 StartCoroutine(Wait(mr.gameObject));
 
                 yield return new WaitForSeconds(property.Interval);
@@ -71,10 +70,10 @@ namespace foriver4725.Border.Tests
     [Serializable]
     internal sealed class Property
     {
-        [SerializeField] private int layer;
+        [SerializeField] private byte layer;
         [SerializeField] private float interval;
 
-        internal int Layer => layer;
+        internal byte Layer => layer;
         internal float Interval => interval;
     }
 
