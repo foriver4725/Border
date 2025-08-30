@@ -10,3 +10,6 @@ Designed with performance in mind, the system runs with zero allocations, ensuri
 In addition, it supports flexible customization of layers and colors to fit different use cases.<br/>
 
 <img width="1600" height="338" alt="border_performance" src="https://github.com/user-attachments/assets/be38d80a-e028-4790-8d8c-7d2b32aba458" />
+
+## How to Use
+Download the asset package from [the latest release](https://github.com/foriver4725/Border/releases) and import it into your project.
