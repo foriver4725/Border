@@ -32,6 +32,12 @@ For reference, profiling results for one million executions are shown below.<br/
 
 <img height="256" alt="border_performance" src="https://github.com/user-attachments/assets/be38d80a-e028-4790-8d8c-7d2b32aba458" />
 
+| Method | GC Alloc | Time ms | Self ms |
+| --- | --- | --- | --- |
+| DoContains | 0 B | 1080.73 | 1080.73 |
+| GetRandomPositionSimply | 0 B | 2286.19 | 2286.19 |
+| GetRandomPositionAccurately | 0 B | 2549.61 | 2549.61 |
+
 As mentioned earlier, you can specify layers. In the overload of the `DoContains` method that accepts layers as an argument, the *Border* checks whether it belongs to any of the provided layer candidates. If it doesn’t, the containment check will automatically fail.<br/>
 
 ```cs
