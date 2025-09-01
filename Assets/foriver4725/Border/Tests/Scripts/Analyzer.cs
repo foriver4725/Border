@@ -18,7 +18,7 @@ namespace foriver4725.Border.Tests
 
                 // warmup
                 for (int i = 0; i < 8; i++)
-                    _ = border.DoContains(pos, layers);
+                    _ = border.DoesContain(pos, layers);
                 for (int i = 0; i < 8; i++)
                     _ = border.GetRandomPositionSimply();
                 for (int i = 0; i < 8; i++)
@@ -27,7 +27,7 @@ namespace foriver4725.Border.Tests
                 Profiler.BeginSample("### Border DoContains ###");
                 {
                     for (int i = 0; i < 1e6; i++)
-                        _ = border.DoContains(pos, layers);
+                        _ = border.DoesContain(pos, layers);
                 }
                 Profiler.EndSample();
 
