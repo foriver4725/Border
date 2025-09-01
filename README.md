@@ -25,7 +25,7 @@ By assigning layers, you can group *Border*s together, and in the calculation pr
 <img height="512" alt="border_component" src="https://github.com/user-attachments/assets/f309f510-031f-470f-9cb8-e47b3e9554d4" />
 
 ### Usage from Scripts
-The methods provided by the *Border* component can be found in the [`IBorder`](https://github.com/foriver4725/Border/blob/main/Assets/foriver4725/Border/Assets/IBorder.cs) interface (a full list is also provided below).<br/>
+The methods provided by the *Border* component can be found in the [`IBorder`](https://github.com/foriver4725/Border/blob/main/Assets/foriver4725/Border/Assets/Scripts/IBorder.cs) interface (a full list is also provided below).<br/>
 Obtain a reference to the *Border* component and call the required methods as needed.<br/>
 All of these methods are designed to run with **zero allocations** and are aggressively inlined wherever possible.<br/>
 For reference, profiling results for one million executions are shown below.<br/>
@@ -34,11 +34,11 @@ For reference, profiling results for one million executions are shown below.<br/
 
 | Method | GC Alloc | Time ms | Self ms |
 | --- | --- | --- | --- |
-| DoContains | 0 B | 1080.73 | 1080.73 |
+| DoesContain | 0 B | 1080.73 | 1080.73 |
 | GetRandomPositionSimply | 0 B | 2286.19 | 2286.19 |
 | GetRandomPositionAccurately | 0 B | 2549.61 | 2549.61 |
 
-As mentioned earlier, you can specify layers. In the overload of the `DoContains` method that accepts layers as an argument, the *Border* checks whether it belongs to any of the provided layer candidates. If it doesn’t, the containment check will automatically fail.<br/>
+As mentioned earlier, you can specify layers. In the overload of the `DoesContain` method that accepts layers as an argument, the *Border* checks whether it belongs to any of the provided layer candidates. If it doesn’t, the containment check will automatically fail.<br/>
 
 ```cs
 using System;
@@ -50,26 +50,26 @@ namespace foriver4725.Border
     internal interface IBorder
     {
         // Returns if the calculation was successful
-        bool DoContains(Vector2 pos, out bool outResult);
-        bool DoContains(Vector2 pos, byte layer, out bool outResult);
-        bool DoContains(Vector2 pos, ReadOnlySpan<byte> layers, out bool outResult); // Base
-        bool DoContains(Vector2 pos, IReadOnlyList<byte> layers, out bool outResult);
+        bool DoesContain(Vector2 pos, out bool outResult);
+        bool DoesContain(Vector2 pos, byte layer, out bool outResult);
+        bool DoesContain(Vector2 pos, ReadOnlySpan<byte> layers, out bool outResult); // Base
+        bool DoesContain(Vector2 pos, IReadOnlyList<byte> layers, out bool outResult);
         // If the calculation failed, returns false
-        bool DoContains(Vector2 pos);
-        bool DoContains(Vector2 pos, byte layer);
-        bool DoContains(Vector2 pos, ReadOnlySpan<byte> layers);
-        bool DoContains(Vector2 pos, IReadOnlyList<byte> layers);
+        bool DoesContain(Vector2 pos);
+        bool DoesContain(Vector2 pos, byte layer);
+        bool DoesContain(Vector2 pos, ReadOnlySpan<byte> layers);
+        bool DoesContain(Vector2 pos, IReadOnlyList<byte> layers);
 
         // Returns if the calculation was successful
-        bool DoContains(Vector3 pos, out bool outResult);
-        bool DoContains(Vector3 pos, byte layer, out bool outResult);
-        bool DoContains(Vector3 pos, ReadOnlySpan<byte> layers, out bool outResult); // Base
-        bool DoContains(Vector3 pos, IReadOnlyList<byte> layers, out bool outResult);
+        bool DoesContain(Vector3 pos, out bool outResult);
+        bool DoesContain(Vector3 pos, byte layer, out bool outResult);
+        bool DoesContain(Vector3 pos, ReadOnlySpan<byte> layers, out bool outResult); // Base
+        bool DoesContain(Vector3 pos, IReadOnlyList<byte> layers, out bool outResult);
         // If the calculation failed, returns false
-        bool DoContains(Vector3 pos);
-        bool DoContains(Vector3 pos, byte layer);
-        bool DoContains(Vector3 pos, ReadOnlySpan<byte> layers);
-        bool DoContains(Vector3 pos, IReadOnlyList<byte> layers);
+        bool DoesContain(Vector3 pos);
+        bool DoesContain(Vector3 pos, byte layer);
+        bool DoesContain(Vector3 pos, ReadOnlySpan<byte> layers);
+        bool DoesContain(Vector3 pos, IReadOnlyList<byte> layers);
 
         // Returns if the calculation was successful
         bool GetRandomPositionSimply(out Vector2 outResult);
