@@ -24,7 +24,7 @@ namespace foriver4725.Border.Tests
                 for (int i = 0; i < 8; i++)
                     _ = border.GetRandomPositionAccurately();
 
-                Profiler.BeginSample("### Border DoContains ###");
+                Profiler.BeginSample("### Border DoesContain ###");
                 {
                     for (int i = 0; i < 1e6; i++)
                         _ = border.DoesContain(pos, layers);
