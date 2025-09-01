@@ -175,7 +175,7 @@ namespace foriver4725.Border
             return null;
         }
 
-        public bool DoContains(Vector2 pos, ReadOnlySpan<byte> layers, out bool outResult)
+        public bool DoesContain(Vector2 pos, ReadOnlySpan<byte> layers, out bool outResult)
         {
             try
             {
@@ -230,48 +230,48 @@ namespace foriver4725.Border
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector2 pos, out bool outResult) => DoContains(pos, stackalloc byte[0], out outResult);
+        public bool DoesContain(Vector2 pos, out bool outResult) => DoesContain(pos, stackalloc byte[0], out outResult);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector2 pos, byte layer, out bool outResult) => DoContains(pos, stackalloc byte[1] { layer }, out outResult);
+        public bool DoesContain(Vector2 pos, byte layer, out bool outResult) => DoesContain(pos, stackalloc byte[1] { layer }, out outResult);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector2 pos, IReadOnlyList<byte> layers, out bool outResult)
+        public bool DoesContain(Vector2 pos, IReadOnlyList<byte> layers, out bool outResult)
         {
             Span<byte> layerSpan = stackalloc byte[layers.Count];
             for (int i = 0; i < layers.Count; i++)
                 layerSpan[i] = layers[i];
-            return DoContains(pos, layerSpan, out outResult);
+            return DoesContain(pos, layerSpan, out outResult);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector2 pos) => DoContains(pos, out bool result) ? result : false;
+        public bool DoesContain(Vector2 pos) => DoesContain(pos, out bool result) ? result : false;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector2 pos, byte layer) => DoContains(pos, layer, out bool result) ? result : false;
+        public bool DoesContain(Vector2 pos, byte layer) => DoesContain(pos, layer, out bool result) ? result : false;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector2 pos, ReadOnlySpan<byte> layers) => DoContains(pos, layers, out bool result) ? result : false;
+        public bool DoesContain(Vector2 pos, ReadOnlySpan<byte> layers) => DoesContain(pos, layers, out bool result) ? result : false;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector2 pos, IReadOnlyList<byte> layers) => DoContains(pos, layers, out bool result) ? result : false;
+        public bool DoesContain(Vector2 pos, IReadOnlyList<byte> layers) => DoesContain(pos, layers, out bool result) ? result : false;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos, ReadOnlySpan<byte> layers, out bool outResult) => DoContains(pos.XZ(), layers, out outResult);
+        public bool DoesContain(Vector3 pos, ReadOnlySpan<byte> layers, out bool outResult) => DoesContain(pos.XZ(), layers, out outResult);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos, out bool outResult) => DoContains(pos, stackalloc byte[0], out outResult);
+        public bool DoesContain(Vector3 pos, out bool outResult) => DoesContain(pos, stackalloc byte[0], out outResult);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos, byte layer, out bool outResult) => DoContains(pos, stackalloc byte[1] { layer }, out outResult);
+        public bool DoesContain(Vector3 pos, byte layer, out bool outResult) => DoesContain(pos, stackalloc byte[1] { layer }, out outResult);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos, IReadOnlyList<byte> layers, out bool outResult)
+        public bool DoesContain(Vector3 pos, IReadOnlyList<byte> layers, out bool outResult)
         {
             Span<byte> layerSpan = stackalloc byte[layers.Count];
             for (int i = 0; i < layers.Count; i++)
                 layerSpan[i] = layers[i];
-            return DoContains(pos, layerSpan, out outResult);
+            return DoesContain(pos, layerSpan, out outResult);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos) => DoContains(pos, out bool result) ? result : false;
+        public bool DoesContain(Vector3 pos) => DoesContain(pos, out bool result) ? result : false;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos, byte layer) => DoContains(pos, layer, out bool result) ? result : false;
+        public bool DoesContain(Vector3 pos, byte layer) => DoesContain(pos, layer, out bool result) ? result : false;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos, ReadOnlySpan<byte> layers) => DoContains(pos, layers, out bool result) ? result : false;
+        public bool DoesContain(Vector3 pos, ReadOnlySpan<byte> layers) => DoesContain(pos, layers, out bool result) ? result : false;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool DoContains(Vector3 pos, IReadOnlyList<byte> layers) => DoContains(pos, layers, out bool result) ? result : false;
+        public bool DoesContain(Vector3 pos, IReadOnlyList<byte> layers) => DoesContain(pos, layers, out bool result) ? result : false;
 
         public bool GetRandomPositionSimply(float y, out Vector3 outResult)
         {
@@ -293,7 +293,7 @@ namespace foriver4725.Border
                 while (true)
                 {
                     Vector2 v = new(UnityEngine.Random.Range(sx, ex), UnityEngine.Random.Range(sy, ey));
-                    if (DoContains(v))
+                    if (DoesContain(v))
                     {
                         outResult = v.X_Y(y);
                         return true;
@@ -355,7 +355,7 @@ namespace foriver4725.Border
                 Vector2 sv = outCollection[0], ev = outCollection[1];
                 Vector2 v = ev - sv;
                 v = sv + v / 2 + new Vector2(v.y, -v.x) * (Tolerance * 10);  // A slightly right-shifted position
-                if (!DoContains(v))
+                if (!DoesContain(v))
                     outCollection.Reverse();
             }
 
