@@ -1,5 +1,8 @@
 # Border
 
+Available in other languages:  
+[中文版本](./README_CN.md) ｜ [日本語版](./README_JP.md)
+
 <img height="256" alt="border_using" src="https://github.com/user-attachments/assets/2949bcba-f51d-4617-95db-7d630b93e470" />
 
 
